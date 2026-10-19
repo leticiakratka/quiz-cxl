@@ -1,0 +1,8 @@
+# Cache no navegador (o wrangler manda isto como config no deploy, não vira arquivo público).
+# Fonte nunca muda com o mesmo nome. Imagem trocada com o mesmo nome pode levar até 7 dias
+# pra aparecer pra quem já visitou; pra trocar na hora, suba com outro nome.
+# quiz.js e quiz.css ficam no padrão (o navegador confere a versão a cada visita).
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+/img/*
+  Cache-Control: public, max-age=604800

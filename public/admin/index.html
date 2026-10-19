@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Admin · Quiz Caixa Livre</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- login -->
+  <div id="login" class="login" hidden>
+    <form class="login-card" id="login-form">
+      <div class="brand-dot"></div>
+      <h1>Quiz Caixa Livre</h1>
+      <p>Painel da análise (Fluxo B)</p>
+      <input id="login-pw" type="password" placeholder="Senha do painel" autocomplete="current-password" required>
+      <button class="b b-pri" type="submit">Entrar</button>
+      <p class="login-err" id="login-err" hidden></p>
+    </form>
+  </div>
+
+  <!-- app -->
+  <div id="shell" class="shell" hidden>
+    <header class="top">
+      <div class="brand"><span class="brand-dot"></span><div><b>Quiz Caixa Livre</b><small>Análise · Fluxo B</small></div></div>
+      <nav class="tabs" id="tabs">
+        <button data-tab="fluxo" class="on">Fluxo</button>
+        <button data-tab="leads">Leads</button>
+        <button data-tab="funil">Funil</button>
+        <button data-tab="config">Configurações</button>
+      </nav>
+      <div class="top-actions">
+        <span class="status" id="status">Carregando…</span>
+        <button class="b" id="btn-save" title="Ctrl/⌘ + S">Salvar rascunho</button>
+        <button class="b b-pri" id="btn-publish">Publicar</button>
+        <a class="b b-ghost" href="/" target="_blank" rel="noopener">Abrir quiz ↗</a>
+        <button class="b b-ghost" id="btn-logout" title="Sair">Sair</button>
+      </div>
+    </header>
+
+    <!-- FLUXO -->
+    <section class="view" id="v-fluxo">
+      <div class="flow">
+        <div class="canvas-wrap">
+          <div class="canvas-tools">
+            <button class="b b-sm" data-act="add-screen">+ Nova tela</button>
+            <button class="b b-sm" data-act="dup-screen">Duplicar</button>
+            <button class="b b-sm" data-act="move-up" title="Mover pra antes">↑</button>
+            <button class="b b-sm" data-act="move-down" title="Mover pra depois">↓</button>
+            <button class="b b-sm b-danger" data-act="del-screen">Excluir</button>
+            <span class="sep"></span>
+            <label class="chk"><input type="checkbox" id="show-nums" checked> números do funil</label>
+            <span class="sep"></span>
+            <button class="b b-sm" data-act="zoom-out">−</button>
+            <span class="zoom" id="zoom">90%</span>
+            <button class="b b-sm" data-act="zoom-in">+</button>
+            <button class="b b-sm" data-act="zoom-fit">Ajustar</button>
+          </div>
+          <div class="warn" id="warn" hidden></div>
+          <div class="canvas" id="canvas">
+            <div class="world" id="world">
+              <svg class="edges" id="edges"></svg>
+              <div id="nodes"></div>
+            </div>
+          </div>
+          <div class="legend" id="legend"></div>
+        </div>
+
+        <aside class="editor" id="editor"></aside>
+
+        <aside class="preview">
+          <div class="pv-head">
+            <b>Prévia</b>
+            <select id="pv-perfil" title="Respostas de exemplo usadas na prévia">
+              <option value="R1">Exemplo perfil R1</option>
+              <option value="R2">Exemplo perfil R2</option>
+              <option value="R3">Exemplo perfil R3</option>
+              <option value="ZERO">Exemplo já guarda 30%</option>
+            </select>
+          </div>
+          <div class="phone"><iframe id="pv" src="/?preview=1" title="Prévia do quiz"></iframe></div>
+          <p class="pv-note">A prévia usa o rascunho e respostas de exemplo (nome Ana). Nada aqui é rastreado.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- LEADS -->
+    <section class="view" id="v-leads" hidden>
+      <div class="page">
+        <div class="page-head">
+          <h2>Leads</h2>
+          <div class="row-gap">
+            <input id="leads-q" placeholder="Buscar nome, e-mail, WhatsApp ou campanha">
+            <button class="b" id="leads-reload">Atualizar</button>
+            <button class="b b-pri" id="leads-csv">Exportar CSV</button>
+          </div>
+        </div>
+        <div class="kpis" id="leads-kpis"></div>
+        <div class="table-wrap"><table class="tbl" id="leads-tbl"></table></div>
+        <div class="pager" id="leads-pager"></div>
+      </div>
+    </section>
+
+    <!-- FUNIL -->
+    <section class="view" id="v-funil" hidden>
+      <div class="page">
+        <div class="page-head">
+          <h2>Funil por tela</h2>
+          <div class="row-gap">
+            <select id="funil-days">
+              <option value="1">Últimas 24h</option>
+              <option value="7">Últimos 7 dias</option>
+              <option value="30" selected>Últimos 30 dias</option>
+              <option value="90">Últimos 90 dias</option>
+            </select>
+            <button class="b" id="funil-reload">Atualizar</button>
+          </div>
+        </div>
+        <p class="muted">Sessões únicas que chegaram em cada tela. As 3 maiores quedas aparecem em vermelho.</p>
+        <div class="kpis" id="funil-kpis"></div>
+        <div class="funnel" id="funil"></div>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section class="view" id="v-config" hidden>
+      <div class="page" id="config-page"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="modal" hidden><div class="modal-card" id="modal-card"></div></div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

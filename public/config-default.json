@@ -1,0 +1,717 @@
+{
+  "meta": {
+    "name": "Análise Caixa Livre (Fluxo B)",
+    "checkoutUrl": "https://chk.eduzz.com/4rd6sd34",
+    "gtmId": "GTM-N9GCCZSW",
+    "utmifyPixelId": "6a87596ff6bfc8a5e8eee8f3",
+    "webhookUrl": "",
+    "price": 97,
+    "footer": "Este site não é afiliado ao Facebook ou a qualquer entidade do Facebook. A compra desse material não garante nenhum tipo de resultado. Usamos resultados reais de alunos. LK APOIO ADMINISTRATIVO | CNPJ: 42.091.414/0001-13"
+  },
+  "theme": {
+    "preset": "leticia",
+    "primary": "#1FA34A",
+    "primaryDark": "#178A3D",
+    "accent": "#D4A544",
+    "bg": "#FFFFFF",
+    "soft": "#F7F1E7",
+    "text": "#1B1512",
+    "muted": "#6E655E",
+    "border": "#E6DCCB"
+  },
+  "screens": [
+    {
+      "id": "capa",
+      "type": "cover",
+      "locked": true,
+      "image": "img/leticia-rosto.webp",
+      "title": "Descubra quanto você poderia estar guardando com o salário que ganha hoje, e o que está impedindo isso de acontecer.",
+      "subtitle": "Com um plano montado a partir da análise da sua vida financeira.",
+      "button": "Começar minha análise",
+      "linkText": "Já fiz a análise"
+    },
+    {
+      "id": "situacao",
+      "type": "single",
+      "title": "Qual frase mais parece com você?",
+      "help": "Dá o primeiro passo pra fazer sobrar dinheiro todo mês.",
+      "options": [
+        {
+          "code": "gasta",
+          "emoji": "💸",
+          "label": "Ganho bem, mas gasto tudo o que entra"
+        },
+        {
+          "code": "fatura",
+          "emoji": "💳",
+          "label": "Meu salário vai quase todo pra fatura e parcelas"
+        },
+        {
+          "code": "guarda",
+          "emoji": "🐷",
+          "label": "Consigo guardar um pouco, mas não vejo crescer"
+        },
+        {
+          "code": "naosei",
+          "emoji": "❓",
+          "label": "Não sei nem pra onde o meu dinheiro vai"
+        }
+      ]
+    },
+    {
+      "id": "renda",
+      "type": "single",
+      "locked": true,
+      "lockedOptions": true,
+      "calc": "renda",
+      "title": "Qual é a sua renda por mês?",
+      "help": "Se varia, pensa numa média.",
+      "options": [
+        {
+          "code": "r5",
+          "emoji": "",
+          "label": "Até R$5 mil",
+          "value": 4000
+        },
+        {
+          "code": "r5a8",
+          "emoji": "",
+          "label": "De R$5 mil a R$8 mil",
+          "value": 6500
+        },
+        {
+          "code": "r8a12",
+          "emoji": "",
+          "label": "De R$8 mil a R$12 mil",
+          "value": 10000
+        },
+        {
+          "code": "r12a18",
+          "emoji": "",
+          "label": "De R$12 mil a R$18 mil",
+          "value": 15000
+        },
+        {
+          "code": "r18a30",
+          "emoji": "",
+          "label": "De R$18 mil a R$30 mil",
+          "value": 24000
+        },
+        {
+          "code": "r30",
+          "emoji": "",
+          "label": "Acima de R$30 mil",
+          "value": 30000
+        }
+      ],
+      "tip": ""
+    },
+    {
+      "id": "nome",
+      "type": "input",
+      "locked": true,
+      "title": "Me conta um pouco mais sobre você",
+      "question": "Como posso te chamar?",
+      "placeholder": "Digite seu nome",
+      "small": "🔒 Suas respostas ficam só com a gente.",
+      "button": "Continuar"
+    },
+    {
+      "id": "frase_1",
+      "type": "statement",
+      "quote": "Ganho e trabalho muito. Nunca sobra nada.",
+      "question": "Você concorda com essa frase?",
+      "answers": [
+        "SIM",
+        "NÃO",
+        "MAIS OU MENOS"
+      ],
+      "caption": "frase de uma aluna, antes de começar"
+    },
+    {
+      "id": "frase_2",
+      "type": "statement",
+      "quote": "Recebo o salário já pensando no próximo.",
+      "question": "Você concorda com essa frase?",
+      "answers": [
+        "SIM",
+        "NÃO",
+        "MAIS OU MENOS"
+      ],
+      "caption": ""
+    },
+    {
+      "id": "sentimento_hoje",
+      "type": "single",
+      "title": "Como você se sente sobre o seu dinheiro hoje?",
+      "help": "",
+      "options": [
+        {
+          "code": "controle",
+          "emoji": "",
+          "label": "Tá tudo sob controle"
+        },
+        {
+          "code": "mudar",
+          "emoji": "",
+          "label": "Quero mudar, mas não sei por onde começar"
+        }
+      ]
+    },
+    {
+      "id": "sobra",
+      "type": "single",
+      "locked": true,
+      "lockedOptions": true,
+      "calc": "sobra",
+      "title": "Quanto sobra no fim do mês?",
+      "help": "",
+      "options": [
+        {
+          "code": "falta",
+          "emoji": "😭",
+          "label": "Falta, e eu completo com cartão ou cheque especial",
+          "value": 0
+        },
+        {
+          "code": "nada",
+          "emoji": "😔",
+          "label": "Nada, zera certinho",
+          "value": 0
+        },
+        {
+          "code": "ate500",
+          "emoji": "🙂",
+          "label": "Até R$500",
+          "value": 250
+        },
+        {
+          "code": "500a1500",
+          "emoji": "😊",
+          "label": "De R$500 a R$1.500",
+          "value": 1000
+        },
+        {
+          "code": "1500a3000",
+          "emoji": "😎",
+          "label": "De R$1.500 a R$3.000",
+          "value": 2250
+        },
+        {
+          "code": "mais3000",
+          "emoji": "🤩",
+          "label": "Mais de R$3.000",
+          "value": 3000
+        }
+      ],
+      "tip": "💡 Pra você saber: quando as minhas alunas contam o que mudou, a palavra que mais aparece é visibilidade. Quando você enxerga pra onde o dinheiro vai, fica muito mais fácil decidir o que fica e o que sai."
+    },
+    {
+      "id": "marco_1",
+      "type": "milestone",
+      "title": "{{nome}}, você não está sozinha.",
+      "text": "Com a sua renda, nos últimos 12 meses passaram mais ou menos **R${{passou_12m}}** pela sua conta.\n\nMuitas das minhas alunas começaram exatamente assim, sem saber dizer pra onde foi a maior parte disso.",
+      "textAlt": "",
+      "button": "Continuar"
+    },
+    {
+      "id": "depo_eloisa",
+      "type": "testimonial",
+      "kicker": "Ela também começou assim",
+      "title": "A Eloisa ganhava entre R$8.500 e R$9.000 e gastava 9 mil e pouco.",
+      "text": "Nunca teve dívida, mas não guardava nada. Quando começou a enxergar pra onde o dinheiro ia, sobraram **R$3 mil** num mês só.",
+      "image": "img/depoimentos/eloisa-quiz.webp",
+      "caption": "Conversa da Eloisa comigo no WhatsApp",
+      "button": "Continuar"
+    },
+    {
+      "id": "ralos",
+      "type": "multi",
+      "locked": true,
+      "lockedOptions": true,
+      "title": "Onde você sente que o dinheiro mais escapa?",
+      "help": "Marca quantas quiser.",
+      "button": "Continuar",
+      "options": [
+        {
+          "code": "cartao",
+          "emoji": "💳",
+          "label": "Cartão de crédito",
+          "phrase": "cartão de crédito"
+        },
+        {
+          "code": "delivery",
+          "emoji": "🛵",
+          "label": "Delivery e comida fora",
+          "phrase": "delivery ou comida fora"
+        },
+        {
+          "code": "compras",
+          "emoji": "📦",
+          "label": "Compras online",
+          "phrase": "compras online"
+        },
+        {
+          "code": "filhos",
+          "emoji": "👧",
+          "label": "Gastos com os filhos",
+          "phrase": "gastos com os filhos"
+        },
+        {
+          "code": "familia",
+          "emoji": "👵",
+          "label": "Ajudando a família",
+          "phrase": "ajuda à família"
+        },
+        {
+          "code": "assinaturas",
+          "emoji": "📱",
+          "label": "Assinaturas e apps",
+          "phrase": "assinaturas"
+        },
+        {
+          "code": "naosei",
+          "emoji": "🤷‍♀️",
+          "label": "Não sei, só sei que some",
+          "phrase": ""
+        }
+      ]
+    },
+    {
+      "id": "delivery",
+      "type": "single",
+      "locked": true,
+      "lockedOptions": true,
+      "title": "Quanto você acha que gasta por mês com {{gastos_lista}}?",
+      "help": "",
+      "options": [
+        {
+          "code": "ate300",
+          "emoji": "",
+          "label": "Até R$300"
+        },
+        {
+          "code": "300a800",
+          "emoji": "",
+          "label": "De R$300 a R$800"
+        },
+        {
+          "code": "800a1500",
+          "emoji": "",
+          "label": "De R$800 a R$1.500"
+        },
+        {
+          "code": "mais1500",
+          "emoji": "",
+          "label": "Mais de R$1.500"
+        },
+        {
+          "code": "naosei",
+          "emoji": "",
+          "label": "Não faço ideia"
+        }
+      ],
+      "tip": "🙋‍♀️ Uma dica: abre o app do banco e soma esses gastos do último mês. Vale fazer o teste, porque o total costuma surpreender."
+    },
+    {
+      "id": "divida",
+      "type": "single",
+      "locked": true,
+      "lockedOptions": true,
+      "title": "Você tem alguma dívida hoje?",
+      "help": "",
+      "options": [
+        {
+          "code": "rolando",
+          "emoji": "💳",
+          "label": "Sim, cartão ou cheque especial que eu vou rolando"
+        },
+        {
+          "code": "emprestimo",
+          "emoji": "🏦",
+          "label": "Sim, empréstimo ou financiamento que aperta o mês"
+        },
+        {
+          "code": "parcelas",
+          "emoji": "🤏",
+          "label": "Tenho parcelas, mas estão sob controle"
+        },
+        {
+          "code": "nao",
+          "emoji": "✅",
+          "label": "Não tenho dívida"
+        }
+      ]
+    },
+    {
+      "id": "reserva",
+      "type": "single",
+      "locked": true,
+      "lockedOptions": true,
+      "title": "Você tem uma reserva de emergência hoje?",
+      "help": "",
+      "options": [
+        {
+          "code": "nada",
+          "emoji": "😶",
+          "label": "Não tenho nada guardado"
+        },
+        {
+          "code": "menos1",
+          "emoji": "🪙",
+          "label": "Tenho, mas não paga nem 1 mês das minhas contas"
+        },
+        {
+          "code": "1a3",
+          "emoji": "🐷",
+          "label": "Tenho o suficiente pra 1 a 3 meses"
+        },
+        {
+          "code": "mais3",
+          "emoji": "🛟",
+          "label": "Tenho mais de 3 meses guardados"
+        }
+      ],
+      "tip": "💡 Pra você saber: montar a reserva de emergência é a meta número 1 das minhas alunas, bem na frente de investir ou comprar imóvel."
+    },
+    {
+      "id": "depo_jhenifer",
+      "type": "testimonial",
+      "kicker": "Pra você ver que dá",
+      "title": "A Jhenifer começou com R$1 mil guardado. Hoje ela tem R$21 mil.",
+      "text": "Nos últimos meses ela conseguiu guardar **30% do que ganha**, já contando todos os gastos e ainda segurando uma grana pra chegar tranquila no fim do mês.\n\nEssa é a meta que eu uso com as minhas alunas: guardar até 30% do que ganham. Com a sua renda, {{nome}}, isso seria até **R${{meta_30}} por mês**.",
+      "image": "img/depoimentos/jhenifer.webp",
+      "caption": "Conversa da Jhenifer comigo no WhatsApp",
+      "button": "Continuar"
+    },
+    {
+      "id": "fatura",
+      "type": "single",
+      "locked": true,
+      "lockedOptions": true,
+      "title": "O que passa pela sua cabeça quando a fatura do cartão chega?",
+      "help": "",
+      "options": [
+        {
+          "code": "absurdo",
+          "emoji": "😤",
+          "label": "\"Mas eu nem comprei nada absurdo esse mês\""
+        },
+        {
+          "code": "naoolho",
+          "emoji": "😩",
+          "label": "Já nem olho direito, só pago e sigo"
+        },
+        {
+          "code": "brava",
+          "emoji": "🤬",
+          "label": "Fico brava comigo mesma"
+        },
+        {
+          "code": "aceitei",
+          "emoji": "😑",
+          "label": "Já aceitei que vai ser sempre assim"
+        }
+      ],
+      "tip": "🙋‍♀️ Uma dica pra já: olha a fatura pela data de cada compra, e não só pelo total. O susto quase sempre vem de gasto pequeno que se repete várias vezes no mês."
+    },
+    {
+      "id": "frase_4",
+      "type": "statement",
+      "quote": "Às vezes sinto que eu trabalho só pra pagar conta.",
+      "question": "Você concorda com essa frase?",
+      "answers": [
+        "SIM",
+        "NÃO",
+        "MAIS OU MENOS"
+      ],
+      "caption": ""
+    },
+    {
+      "id": "sentir",
+      "type": "multi",
+      "locked": true,
+      "lockedOptions": true,
+      "title": "Como você quer se sentir em relação ao dinheiro?",
+      "help": "Marca quantas quiser.",
+      "button": "Continuar",
+      "options": [
+        {
+          "code": "segura",
+          "emoji": "",
+          "label": "Segura",
+          "phrase": "segura"
+        },
+        {
+          "code": "tranquila",
+          "emoji": "",
+          "label": "Tranquila",
+          "phrase": "tranquila"
+        },
+        {
+          "code": "livre",
+          "emoji": "",
+          "label": "Livre",
+          "phrase": "livre"
+        },
+        {
+          "code": "controle",
+          "emoji": "",
+          "label": "No controle, sem neura",
+          "phrase": "no controle, sem neura"
+        },
+        {
+          "code": "orgulhosa",
+          "emoji": "",
+          "label": "Orgulhosa de mim",
+          "phrase": "orgulhosa de você"
+        },
+        {
+          "code": "leve",
+          "emoji": "",
+          "label": "Leve",
+          "phrase": "leve"
+        },
+        {
+          "code": "outra",
+          "emoji": "",
+          "label": "Outra coisa",
+          "phrase": ""
+        }
+      ]
+    },
+    {
+      "id": "marco_3",
+      "type": "milestone",
+      "title": "{{nome}}, a sua análise está quase pronta!",
+      "text": "Pelas suas respostas, existe uma diferença de até **R${{gap_mes}} por mês** entre o que sobra hoje e o que poderia sobrar.\n\nAgora vamos ver como você chega lá. ✨",
+      "textAlt": "Pelas suas respostas, você já está perto da meta de 30%. Agora vamos ver como você vai além. ✨",
+      "button": "Continuar"
+    },
+    {
+      "id": "tempo",
+      "type": "single",
+      "title": "Quanto tempo por semana você toparia dedicar pra ver o seu dinheiro sobrar?",
+      "help": "",
+      "options": [
+        {
+          "code": "15",
+          "emoji": "",
+          "label": "15 minutos"
+        },
+        {
+          "code": "30",
+          "emoji": "",
+          "label": "30 minutos"
+        },
+        {
+          "code": "60",
+          "emoji": "",
+          "label": "1 hora"
+        },
+        {
+          "code": "precisar",
+          "emoji": "",
+          "label": "O tempo que precisar"
+        }
+      ],
+      "tip": "✅ O que eu vou te mostrar no final foi pensado pra caber em 30 minutos por semana."
+    },
+    {
+      "id": "conquista",
+      "type": "multi",
+      "locked": true,
+      "lockedOptions": true,
+      "title": "Quando sobrar dinheiro todo mês, a primeira coisa que eu quero fazer é...",
+      "help": "Marca quantas quiser.",
+      "button": "Continuar",
+      "options": [
+        {
+          "code": "reserva",
+          "emoji": "",
+          "label": "Montar a minha reserva de emergência",
+          "phrase": "montar a sua reserva de emergência"
+        },
+        {
+          "code": "cartao",
+          "emoji": "",
+          "label": "Quitar o cartão de vez",
+          "phrase": "quitar o cartão de vez"
+        },
+        {
+          "code": "viajar",
+          "emoji": "",
+          "label": "Viajar sem parcelar",
+          "phrase": "viajar sem parcelar"
+        },
+        {
+          "code": "brigar",
+          "emoji": "",
+          "label": "Parar de brigar por dinheiro em casa",
+          "phrase": "parar de brigar por dinheiro em casa"
+        },
+        {
+          "code": "pais",
+          "emoji": "",
+          "label": "Ajudar meus pais sem me apertar",
+          "phrase": "ajudar seus pais sem se apertar"
+        },
+        {
+          "code": "filhos",
+          "emoji": "",
+          "label": "Dizer sim pros meus filhos sem fazer conta escondida",
+          "phrase": "dizer sim pros seus filhos sem fazer conta escondida"
+        },
+        {
+          "code": "investir",
+          "emoji": "",
+          "label": "Começar a investir",
+          "phrase": "começar a investir"
+        },
+        {
+          "code": "imovel",
+          "emoji": "",
+          "label": "Dar entrada num imóvel ou trocar de carro",
+          "phrase": "dar entrada num imóvel ou trocar de carro"
+        }
+      ]
+    },
+    {
+      "id": "marco_caminho",
+      "type": "milestone",
+      "title": "Você está a caminho de fazer sobrar dinheiro todo mês, {{nome}}.",
+      "text": "Vou salvar as suas respostas pra te mandar o seu plano.",
+      "textAlt": "",
+      "button": "Continuar"
+    },
+    {
+      "id": "captura",
+      "type": "capture",
+      "locked": true,
+      "title": "Coloca o seu WhatsApp e o seu e-mail pra liberar o seu resultado.",
+      "whatsLabel": "WhatsApp com DDD",
+      "emailLabel": "E-mail",
+      "button": "Liberar meu resultado",
+      "consent": "🔒 Ao continuar, você aceita receber da Leticia Kratka mensagens sobre o seu resultado. Dá pra sair quando quiser.",
+      "errWhats": "Confere o número com DDD, {{nome}}",
+      "errEmail": "Confere o seu e-mail, {{nome}}"
+    },
+    {
+      "id": "analise",
+      "type": "loading",
+      "locked": true,
+      "title": "Estou montando o seu plano",
+      "items": [
+        "Calculando quanto passou pela sua conta",
+        "Comparando com a meta de 30%",
+        "Encontrando os seus pontos de vazamento",
+        "Montando o seu plano"
+      ],
+      "seconds": 8
+    }
+  ],
+  "profiles": {
+    "R1": {
+      "name": "Você ganha bem, mas o seu dinheiro escorre sem você ver",
+      "support": "Você paga tudo em dia, não tem nenhuma loucura na fatura, e mesmo assim chega no fim do mês sem nada guardado.",
+      "testimonialImage": "img/depoimentos/andressa-quiz.webp",
+      "testimonialName": "Andressa",
+      "testimonialText": "R$2 mil economizados no primeiro mês. Antes de entrar ela escreveu: \"Ganho e trabalho muito. Nunca sobra nada.\""
+    },
+    "R2": {
+      "name": "O seu salário está pagando o mês passado",
+      "support": "Você trabalha o mês inteiro, mas boa parte do que entra já chega comprometida com a fatura e as parcelas.",
+      "testimonialImage": "img/depoimentos/eloisa-quiz.webp",
+      "testimonialName": "Eloisa",
+      "testimonialText": "Ganhava entre R$8.500 e R$9.000, gastava 9 mil e pouco e não guardava nada. Num mês só, sobraram R$3 mil."
+    },
+    "R3": {
+      "name": "Você já guarda, mas paga caro por isso",
+      "support": "Sobra alguma coisa no fim do mês, só que vem com corte, culpa e a sensação de estar sempre se privando.",
+      "testimonialImage": "img/depoimentos/jhenifer.webp",
+      "testimonialName": "Jhenifer",
+      "testimonialText": "De R$1 mil pra R$21 mil guardados, e hoje guarda 30% do que ganha. \"A planilha me ajudou bastante nessa visibilidade.\""
+    }
+  },
+  "result": {
+    "title": "{{nome}}, a sua análise está pronta",
+    "profileLabel": "Seu perfil:",
+    "labelPassou": "Passou pela sua conta nos últimos 12 meses",
+    "labelSobra": "Quanto sobra hoje, por mês",
+    "labelMeta": "Quanto poderia sobrar (meta de até 30%)",
+    "labelGapAno": "A diferença em 1 ano",
+    "gapZero": "Você já está perto da meta de 30%",
+    "disclaimer": "Estimativa feita com as faixas que você escolheu. É o tamanho do espaço que existe na sua renda, e não uma promessa de resultado.",
+    "sobraDisplay": {
+      "falta": "R$0 (hoje falta)",
+      "nada": "R$0",
+      "ate500": "cerca de R$250",
+      "500a1500": "cerca de R$1.000",
+      "1500a3000": "cerca de R$2.250",
+      "mais3000": "mais de R$3.000"
+    },
+    "betweenTitle": "O que está entre você e esse número",
+    "sentenceRalos": "Você disse que o dinheiro escapa mais em {{ralos}}. É exatamente o tipo de gasto que passa batido quando você não tem tudo num lugar só.",
+    "sentenceRalosNaoSei": "Você disse que o dinheiro simplesmente some. Isso é o sinal mais claro de que falta enxergar o mês inteiro num lugar só.",
+    "sentenceDivida": "Parte do seu salário hoje vai pra juros, e esse é o primeiro dinheiro a recuperar.",
+    "sentenceFatura": {
+      "absurdo": "Quando a fatura chega, você pensa 'mas eu nem comprei nada absurdo'. Isso costuma ser gasto pequeno que se repete, e é o primeiro que aparece quando você vê o mês todo.",
+      "naoolho": "Você disse que já nem olha a fatura direito. Isso acontece quando ela é o único lugar onde você vê os seus gastos, e ninguém gosta de levar susto todo mês.",
+      "brava": "Você disse que fica brava com você mesma quando a fatura chega. Esse peso diminui muito quando você acompanha o mês antes da fatura fechar.",
+      "aceitei": "Você disse que já aceitou que vai ser sempre assim. Dá pra mudar, e começa por enxergar o mês antes da fatura fechar."
+    },
+    "sentenceReservaSem": "Hoje você não tem reserva de verdade, então qualquer imprevisto acaba no cartão.",
+    "sentenceReservaCom": "Você já tem uma reserva começando, e dá pra fazer ela crescer bem mais rápido.",
+    "absolution": "Isso acontece com quase todo mundo que nunca teve um lugar pra enxergar o próprio dinheiro, e ninguém ensina isso, nem em casa, nem na escola.",
+    "mechanismTitle": "Uma planilha, uma IA e 30 minutos por semana.",
+    "mechanismIntro": "É assim que funciona o sistema que eu criei:",
+    "mechanism": [
+      {
+        "icon": "⚡",
+        "title": "Automático",
+        "text": "você cola o extrato do banco e a planilha categoriza tudo sozinha, sem digitar gasto por gasto"
+      },
+      {
+        "icon": "✨",
+        "title": "Inteligente",
+        "text": "a Clara lê os seus números e aponta o que está errado e o que ajustar primeiro"
+      },
+      {
+        "icon": "⏱️",
+        "title": "Rápido",
+        "text": "em 30 minutos por semana você sabe exatamente quanto ainda dá pra gastar"
+      }
+    ],
+    "future": "Pensa em você daqui a alguns meses, {{nome}}, com dinheiro sobrando pra {{conquista}}, e se sentindo {{sentir}} toda vez que abre a conta.",
+    "futureConquistaDefault": "montar a sua reserva de emergência",
+    "futureSentirDefault": "tranquila",
+    "roiTitle": "Pensa comigo",
+    "roiGap": "O sistema custa R$97. A diferença que a sua análise mostrou é de até R${{gap_mes}} por mês. Se você recuperar só uma parte pequena disso no primeiro mês, ele já se pagou.",
+    "roiDelivery": "E ele custa menos do que você gasta num mês só com {{gastos_lista}}."
+  },
+  "offer": {
+    "kicker": "A solução:",
+    "title": "Caixa Livre 2.0",
+    "image": "img/mockup.webp",
+    "intro": "Um sistema pronto pra você copiar e colar, que:",
+    "benefits": [
+      "Mostra num lugar só pra onde vai cada real, porque você cola o extrato do banco e a planilha categoriza tudo sozinha",
+      "Te diz quanto ainda dá pra gastar no mês e quanto dá pra guardar, em 30 minutos por semana",
+      "Tem a Clara, uma IA treinada com o meu método, que olha os seus números e aponta onde está vazando",
+      "Te ajuda a guardar até 30% do que você ganha sem baixar o seu padrão de vida"
+    ],
+    "social": "Mais de 2.500 pessoas já usam o Caixa Livre, e a próxima pode ser você.",
+    "bonusTitle": "🎁 Entrando agora você também leva:",
+    "bonuses": [
+      "Checklist semanal de 30 minutos: a rotina de domingo que te faz sair sabendo quanto vai sobrar no mês",
+      "Diagnóstico Caixa Livre com a Clara: na primeira semana você recebe o raio-x do seu mês, com onde está vazando e o que ajustar primeiro",
+      "PDFs de apoio de cada aula, pra revisar rápido sem voltar no vídeo"
+    ],
+    "priceName": "Caixa Livre 2.0",
+    "priceInstallments": "12x de R$10,03",
+    "priceCash": "ou R$97 à vista",
+    "button": "QUERO FAZER SOBRAR",
+    "guarantee": "🔒 7 dias de garantia. Se você não se adaptar, devolvo todo o seu dinheiro.",
+    "extraBlocks": []
+  }
+}

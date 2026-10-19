@@ -1,0 +1,20 @@
+{
+  // Quiz Caixa Livre (Fluxo B) + painel /admin
+  // Antes do primeiro deploy: criar o banco (npx wrangler@3 d1 create quiz-analise-cxl),
+  // colar o database_id abaixo e definir a senha (npx wrangler@3 secret put ADMIN_PASSWORD).
+  "name": "quiz-analise-cxl",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-07-18",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "quiz-analise-cxl",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}
