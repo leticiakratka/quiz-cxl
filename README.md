@@ -34,18 +34,19 @@ npx wrangler@3 dev --port 8787
 
 Quiz em http://127.0.0.1:8787 e painel em http://127.0.0.1:8787/admin/ (a senha local fica em `.dev.vars`, que não vai pro git). O banco local fica em `.wrangler/` e não sobe no deploy.
 
-## Colocar no ar (só com OK)
+## No ar
+
+- **Quiz:** https://quiz.leticiakratka.com.br · **Painel:** https://quiz.leticiakratka.com.br/admin/
+- Conta Cloudflare da Leticia, Worker `quiz-cxl`, banco D1 `quiz-cxl` (região ENAM), domínio próprio (o endereço workers.dev está desligado).
+- Repositório: https://github.com/leticiakratka/quiz-cxl
+- O domínio de Worker é sempre com proxy ligado (nuvem laranja): é a Cloudflare que roda o Worker, então com o proxy desligado o endereço não teria pra onde apontar.
+- Senha do painel: secret `ADMIN_PASSWORD` do Worker. Trocar em Workers & Pages → quiz-cxl → Settings → Variables and Secrets, ou com `npx wrangler@3 secret put ADMIN_PASSWORD` nesta pasta. Sem ela, o painel não abre.
+
+Publicar mudança de código (o conteúdo muda pelo painel, sem deploy):
 
 ```bash
-npx wrangler@3 d1 create quiz-analise-cxl          # copiar o database_id pro wrangler.jsonc
-npx wrangler@3 secret put ADMIN_PASSWORD           # senha do painel
+npx wrangler@3 versions list --name quiz-cxl   # conferir se o que está no ar não é mais novo que esta pasta
 npx wrangler@3 deploy
 ```
 
-Depois, pra usar um subdomínio (ex.: `analise.leticiakratka.com.br`), acrescentar no `wrangler.jsonc` e fazer deploy de novo:
-
-```jsonc
-"routes": [{ "pattern": "analise.leticiakratka.com.br", "custom_domain": true }]
-```
-
-No primeiro acesso o quiz já usa o `config-default.json`. Entrar no painel, revisar e clicar em Publicar cria a primeira versão no banco.
+No primeiro acesso o quiz usa o `config-default.json`. Entrar no painel, revisar e clicar em Publicar cria a primeira versão no banco.

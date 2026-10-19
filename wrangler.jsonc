@@ -1,10 +1,14 @@
 {
   // Quiz Caixa Livre (Fluxo B) + painel /admin
-  // Antes do primeiro deploy: criar o banco (npx wrangler@3 d1 create quiz-analise-cxl),
-  // colar o database_id abaixo e definir a senha (npx wrangler@3 secret put ADMIN_PASSWORD).
-  "name": "quiz-analise-cxl",
+  // No ar em https://quiz.leticiakratka.com.br (painel em /admin/), conta Cloudflare da Leticia.
+  // A senha do painel é o secret ADMIN_PASSWORD (npx wrangler@3 secret put ADMIN_PASSWORD).
+  "name": "quiz-cxl",
   "main": "src/worker.js",
   "compatibility_date": "2025-07-18",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "quiz.leticiakratka.com.br", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -13,8 +17,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "quiz-analise-cxl",
-      "database_id": "00000000-0000-0000-0000-000000000000"
+      "database_name": "quiz-cxl",
+      "database_id": "bce0b0e4-2f8e-430a-8bf2-970a4eac9d42"
     }
   ]
 }
