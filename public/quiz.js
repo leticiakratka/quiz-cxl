@@ -497,6 +497,70 @@
     }
   }
 
+  /* notificação estilo celular no resultado ("você tem R$X de caixa livre"), com plim-plim.
+     O som é gerado aqui (Web Audio, sem arquivo). O iPhone só deixa tocar som depois de um
+     toque, então o áudio é destravado no primeiro toque da pessoa no quiz e fica pronto. */
+  var AUD = null, NOTIF_VISTA = false;
+  function liberaSom() {
+    try {
+      if (AUD && AUD.state === 'running') return;
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      if (!AUD) AUD = new AC();
+      if (AUD.state === 'suspended') AUD.resume();
+      var s = AUD.createBufferSource(); s.buffer = AUD.createBuffer(1, 1, 22050); s.connect(AUD.destination); s.start(0);
+    } catch (e) { }
+  }
+  if (!PREVIEW) { document.addEventListener('pointerdown', liberaSom, true); document.addEventListener('touchend', liberaSom, true); }
+  function plim() {
+    try {
+      if (!AUD || AUD.state !== 'running') return;
+      var t0 = AUD.currentTime + 0.02;
+      [[1318.5, 0], [1760, 0.14]].forEach(function (n) {
+        [[1, 0.2], [2, 0.04]].forEach(function (h) { /* fundamental + oitava fraca = timbre de sininho */
+          var o = AUD.createOscillator(), g = AUD.createGain(), t = t0 + n[1];
+          o.type = 'sine'; o.frequency.value = n[0] * h[0];
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(h[1], t + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+          o.connect(g); g.connect(AUD.destination); o.start(t); o.stop(t + 0.55);
+        });
+      });
+    } catch (e) { }
+  }
+  var NF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg>';
+  function notificacao() {
+    var N = (C.result || {}).notify;
+    if (!N || !N.enabled || NOTIF_VISTA || !(calc().meta > 0)) return;
+    NOTIF_VISTA = true;
+    setTimeout(function () {
+      var el = document.createElement('div');
+      el.className = 'notif'; el.setAttribute('role', 'status');
+      el.innerHTML = '<div class="nf-ic" aria-hidden="true">' + NF_ICON + '</div><div class="nf-body"><div class="nf-top"><b>' + tpl(N.app) + '</b><span>' + tpl(N.time) + '</span></div>' +
+        (N.title ? '<div class="nf-t">' + tpl(N.title) + '</div>' : '') + '<div class="nf-tx">' + tpl(N.text) + '</div></div>';
+      document.body.appendChild(el);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('on'); }); });
+      if (N.sound !== false && !PREVIEW) plim();
+      dl({ event: 'quiz_notificacao', acao: 'vista', quiz_id: QUIZ_ID }); beacon('notificacao_vista');
+      var timer = setTimeout(fecha, Math.max(2, Number(N.seconds) || 6) * 1000), y0 = null, puxou = false;
+      function fecha() { clearTimeout(timer); el.classList.remove('on'); setTimeout(function () { el.remove(); }, 450); }
+      /* toque leva até o preço; arrastar pra cima fecha, igual notificação de celular */
+      el.addEventListener('pointerdown', function (e) { y0 = e.clientY; puxou = false; });
+      el.addEventListener('pointermove', function (e) {
+        if (y0 == null) return;
+        var dy = e.clientY - y0; if (dy < -6) { puxou = true; el.style.transition = 'none'; el.style.transform = 'translateY(' + dy + 'px)'; }
+      });
+      el.addEventListener('pointerup', function (e) {
+        var dy = y0 == null ? 0 : e.clientY - y0; y0 = null;
+        el.style.transition = ''; el.style.transform = '';
+        if (puxou) { if (dy < -30) fecha(); return; }
+        dl({ event: 'quiz_notificacao', acao: 'tocada', quiz_id: QUIZ_ID }); beacon('notificacao_tocada');
+        var alvo = document.querySelector('.price') || document.getElementById('oferta');
+        if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        fecha();
+      });
+    }, Math.max(0, Number(N.delay) || 0) * 1000);
+  }
+
   /* carrossel de depoimentos do resultado: primeiro o do perfil da pessoa, depois os outros
      dois perfis e os extras do config (result.moreTestimonials), sem repetir print */
   function depoimentosHtml(pf, Rr) {
@@ -567,6 +631,7 @@
       try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ans: S.ans, nome: S.nome, ts: Date.now() })); } catch (e) { }
       dl({ event: 'quiz_result', quiz_id: QUIZ_ID, quiz_perfil: pf });
       beacon('resultado');
+      notificacao();
     } else beacon('oferta_direta');
   }
 
@@ -604,6 +669,9 @@
   }
   function previewShow(d) {
     C = d.config; applyTheme();
+    /* na prévia a notificação aparece ao abrir o resultado, não a cada edição na mesma tela */
+    if (d.screen !== previewShow.ult) NOTIF_VISTA = false;
+    previewShow.ult = d.screen;
     S.ans = sample(d.perfil); S.nome = 'Ana'; S.hist = [];
     PREVIEW_HOLD = d.screen === 'analise';
     if (d.screen === '__resultado') { renderResult(false); return; }

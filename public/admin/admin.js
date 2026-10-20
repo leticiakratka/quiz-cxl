@@ -461,7 +461,8 @@
     /* regra do funil: o nome do produto só aparece na oferta */
     D.screens.forEach(function (s, i) { if (/caixa\s*livre/i.test(JSON.stringify(s))) w.push('Tela ' + (i + 1) + ' cita "Caixa Livre". O nome do produto só pode aparecer na oferta.'); });
     ['R1', 'R2', 'R3'].forEach(function (k) { if (/caixa\s*livre/i.test(JSON.stringify(D.profiles[k] || {}))) w.push('Perfil ' + k + ' cita "Caixa Livre" (aparece antes da oferta).'); });
-    if (/caixa\s*livre/i.test(JSON.stringify(D.result || {}))) w.push('A tela de resultado cita "Caixa Livre" antes da oferta.');
+    var semNotif = Object.assign({}, D.result || {}); delete semNotif.notify;
+    if (/caixa\s*livre/i.test(JSON.stringify(semNotif))) w.push('A tela de resultado cita "Caixa Livre" antes da oferta.');
     if (D.screens.some(function (s) { return s.type === 'testimonial' && /andressa\.webp|eloisa\.webp|endine/.test(s.image || ''); })) w.push('Um depoimento do meio do fluxo usa print que mostra o nome do produto. Use as versões "-quiz".');
     return w;
   }
@@ -542,6 +543,9 @@
     var field = opt.area ? '<textarea data-path="' + path + '" rows="' + (opt.rows || 3) + '">' + esc(v) + '</textarea>'
       : '<input data-path="' + path + '"' + (opt.num ? ' type="number" data-num="1"' : '') + ' value="' + esc(v) + '"' + (opt.ph ? ' placeholder="' + esc(opt.ph) + '"' : '') + '>';
     return '<label class="f"><span>' + label + '</span>' + field + (opt.vars ? chips() : '') + (opt.hint ? '<small>' + opt.hint + '</small>' : '') + '</label>';
+  }
+  function fCheck(label, path) {
+    return '<label class="f chkf"><input type="checkbox" data-path="' + path + '" data-bool="1"' + (getPath(D, path) ? ' checked' : '') + '><span>' + label + '</span></label>';
   }
   function fImage(label, path) {
     var v = getPath(D, path) || '';
@@ -654,6 +658,12 @@
           fImage('Print', q + 'image') + fText('Nome', q + 'name') + fText('Texto', q + 'text', { area: true, rows: 2 }) + '</div>';
       }).join('') +
       '<button class="add" data-act="list-add" data-path="result.moreTestimonials" data-tpl=\'{"image":"","name":"","text":""}\'>+ depoimento</button></div>';
+    if (!D.result.notify) D.result.notify = { enabled: false, sound: true, app: 'Caixa Livre', time: 'agora', title: '', text: 'Você tem R${{meta_30}} de caixa livre este mês.', delay: 1.5, seconds: 6 };
+    h += '<div class="ed-sec"><h4>Notificação ao abrir o resultado</h4><div class="ed-note">Desce do topo como notificação de celular, com um plim-plim, alguns segundos depois que o resultado abre. Tocar nela leva até o preço; arrastar pra cima fecha. Na prévia aparece sem som. O valor usa as variáveis, ex.: {{meta_30}}.</div>' +
+      fCheck('Mostrar a notificação', r + 'notify.enabled') + fCheck('Tocar o som (plim-plim)', r + 'notify.sound') +
+      fText('Nome do app', r + 'notify.app') + fText('Horário', r + 'notify.time') + fText('Título', r + 'notify.title', { ph: 'opcional' }) +
+      fText('Mensagem', r + 'notify.text', { area: true, rows: 2, vars: true }) +
+      fText('Aparece depois de (segundos)', r + 'notify.delay', { num: true }) + fText('Some sozinha depois de (segundos)', r + 'notify.seconds', { num: true }) + '</div>';
     h += '<div class="ed-sec"><h4>Pensa comigo</h4>' + fText('Título', r + 'roiTitle') + fText('Texto da diferença', r + 'roiGap', { area: true, vars: true, hint: 'Aparece quando a diferença por mês é maior que zero.' }) + fText('Texto do delivery', r + 'roiDelivery', { area: true, hint: 'Aparece quando a pessoa gasta R$300 ou mais com delivery e apps.' }) + '</div>';
     return h;
   }
@@ -706,7 +716,7 @@
   $('#editor').addEventListener('focusin', function (e) { if (e.target.matches('input[data-path], textarea[data-path]')) lastFocus = e.target; });
   $('#editor').addEventListener('input', function (e) {
     var el = e.target; if (!el.dataset || !el.dataset.path) return;
-    var v = el.dataset.num ? (el.value === '' ? 0 : Number(el.value)) : el.value;
+    var v = el.dataset.bool ? el.checked : (el.dataset.num ? (el.value === '' ? 0 : Number(el.value)) : el.value);
     setPath(D, el.dataset.path, v);
     if (el.tagName === 'SELECT') { renderEditor(); }
     markDirty(); updateNode(sel); renderWarnings();
@@ -827,7 +837,8 @@
     var base = funnel.capa || 0, prev = null, drops = [];
     rows.forEach(function (r) { r.n = funnel[r.id] || 0; r.pct = base ? r.n / base * 100 : 0; r.drop = prev != null && prev > 0 ? (prev - r.n) / prev * 100 : 0; prev = r.n; drops.push(r.drop); });
     var top = drops.slice().sort(function (a, b) { return b - a; }).slice(0, 3).filter(function (x) { return x > 0; });
-    $('#funil-kpis').innerHTML = kpi('Começaram (capa)', base) + kpi('Leads capturados', d.leads) + kpi('Viram o resultado', funnel.resultado || 0) + kpi('Clicaram em comprar', funnel.checkout_click || 0) +
+    $('#funil-kpis').innerHTML = kpi('Começaram (capa)', base) + kpi('Leads capturados', d.leads) + kpi('Viram o resultado', funnel.resultado || 0) +
+      kpi('Tocaram na notificação', (funnel.notificacao_tocada || 0) + ' de ' + (funnel.notificacao_vista || 0)) + kpi('Clicaram em comprar', funnel.checkout_click || 0) +
       kpi('Capa → lead', base ? Math.round(d.leads / base * 100) + '%' : '—');
     if (!base) { $('#funil').innerHTML = '<div class="empty">Ainda não tem visita nesse período.</div>'; return; }
     $('#funil').innerHTML = '<div class="fr head"><span></span><span>Tela</span><span></span><span class="n">Sessões</span><span class="pc">% início</span><span class="drop">Queda</span></div>' +

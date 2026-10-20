@@ -236,3 +236,6 @@ body.dragging-any, body.dragging-any * { cursor: grabbing !important; user-selec
   .brand { min-width: auto; }
   .brand div { display: none; }
 }
+.f.chkf { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.f.chkf input { width: auto; margin: 0; }
+.f.chkf span { margin: 0; font-weight: 600; }

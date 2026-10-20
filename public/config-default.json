@@ -642,6 +642,16 @@
     "labelGapAno": "A diferença em 1 ano",
     "gapZero": "Você já está perto da meta de 30%",
     "disclaimer": "Estimativa feita com as faixas que você escolheu. É o tamanho do espaço que existe na sua renda, e não uma promessa de resultado.",
+    "notify": {
+      "enabled": true,
+      "sound": true,
+      "app": "Caixa Livre",
+      "time": "agora",
+      "title": "Sobrou dinheiro! 🎉",
+      "text": "Você tem R${{meta_30}} de caixa livre este mês.",
+      "delay": 1.5,
+      "seconds": 6
+    },
     "sobraDisplay": {
       "falta": "R$0 (hoje falta)",
       "nada": "R$0",
