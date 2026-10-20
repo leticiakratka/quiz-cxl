@@ -172,7 +172,7 @@ const isoOk = (v) => (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/.test(
 function filtroLeads(url) {
   const conds = [], args = [];
   const q = corta(url.searchParams.get('q'), 80).trim();
-  if (q) { const l = '%' + q + '%'; conds.push('(nome LIKE ? OR email LIKE ? OR whatsapp LIKE ? OR utm_campaign LIKE ?)'); args.push(l, l, l, l); }
+  if (q) { const l = '%' + q + '%'; conds.push('(nome LIKE ? OR email LIKE ? OR whatsapp LIKE ? OR utm_campaign LIKE ? OR utm_medium LIKE ? OR utm_content LIKE ?)'); args.push(l, l, l, l, l, l); }
   const de = isoOk(url.searchParams.get('from')), ate = isoOk(url.searchParams.get('to'));
   if (de) { conds.push('created_at >= ?'); args.push(de); }
   if (ate) { conds.push('created_at < ?'); args.push(ate); }
@@ -332,7 +332,7 @@ export default {
           const page = Math.max(1, Number(url.searchParams.get('page')) || 1), size = 50;
           const { where, args } = filtroLeads(url);
           const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM leads ${where}`).bind(...args).first();
-          const { results } = await env.DB.prepare(`SELECT id, created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_campaign, utm_content, respostas FROM leads ${where} ORDER BY id DESC LIMIT ${size} OFFSET ${(page - 1) * size}`).bind(...args).all();
+          const { results } = await env.DB.prepare(`SELECT id, created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_campaign, utm_medium, utm_content, respostas FROM leads ${where} ORDER BY id DESC LIMIT ${size} OFFSET ${(page - 1) * size}`).bind(...args).all();
           const porPerfil = await env.DB.prepare(`SELECT perfil, COUNT(*) AS n FROM leads ${where} GROUP BY perfil`).bind(...args).all();
           return json({ total: total.n, page, size, items: results, porPerfil: porPerfil.results });
         }

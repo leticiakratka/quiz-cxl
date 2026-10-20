@@ -858,10 +858,10 @@
       var tudo = $('#leads-datef .df-preset').value === 'tudo';
       $('#leads-kpis').innerHTML = kpi(tudo ? 'Leads no total' : 'Leads no período', d.total) + kpi('Perfil R1 · escorre', per.R1 || 0) + kpi('Perfil R2 · dívida', per.R2 || 0) + kpi('Perfil R3 · guarda', per.R3 || 0);
       if (!d.items.length) { $('#leads-tbl').innerHTML = '<tr><td class="empty">Nenhum lead ' + (leadsQ ? 'pra essa busca' : (tudo ? 'ainda' : 'nesse período')) + '.</td></tr>'; $('#leads-pager').innerHTML = ''; return; }
-      $('#leads-tbl').innerHTML = '<thead><tr><th>Data</th><th>Nome</th><th>WhatsApp</th><th>E-mail</th><th>Perfil</th><th>Renda</th><th>Sobra</th><th>Diferença/mês</th><th>Campanha</th><th>Anúncio</th></tr></thead><tbody>' +
+      $('#leads-tbl').innerHTML = '<thead><tr><th>Data</th><th>Nome</th><th>WhatsApp</th><th>E-mail</th><th>Perfil</th><th>Renda</th><th>Sobra</th><th>Diferença/mês</th><th>Campanha</th><th>Conjunto</th><th>Anúncio</th></tr></thead><tbody>' +
         d.items.map(function (r, i) {
           return '<tr data-i="' + i + '"><td>' + fmtDate(r.created_at) + '</td><td>' + esc(r.nome) + '</td><td><a href="https://wa.me/55' + esc(r.whatsapp) + '" target="_blank" rel="noopener">' + esc(fmtZap(r.whatsapp)) + '</a></td><td>' + esc(r.email) + '</td>' +
-            '<td><span class="pill ' + esc(r.perfil) + '">' + esc(r.perfil) + '</span></td><td>' + esc(r.renda) + '</td><td>' + esc(r.sobra) + '</td><td>R$' + Number(r.gap_mes || 0).toLocaleString('pt-BR') + '</td><td>' + esc(r.utm_campaign) + '</td><td>' + esc(r.utm_content) + '</td></tr>';
+            '<td><span class="pill ' + esc(r.perfil) + '">' + esc(r.perfil) + '</span></td><td>' + esc(r.renda) + '</td><td>' + esc(r.sobra) + '</td><td>R$' + Number(r.gap_mes || 0).toLocaleString('pt-BR') + '</td><td>' + esc(r.utm_campaign) + '</td><td>' + esc(r.utm_medium) + '</td><td>' + esc(r.utm_content) + '</td></tr>';
         }).join('') + '</tbody>';
       var pages = Math.max(1, Math.ceil(d.total / d.size));
       $('#leads-pager').innerHTML = 'Página ' + d.page + ' de ' + pages + ' <button class="b b-sm" ' + (d.page <= 1 ? 'disabled' : '') + ' data-p="' + (d.page - 1) + '">←</button><button class="b b-sm" ' + (d.page >= pages ? 'disabled' : '') + ' data-p="' + (d.page + 1) + '">→</button>';
