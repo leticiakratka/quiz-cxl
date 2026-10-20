@@ -817,16 +817,47 @@
     $('#pv').contentWindow.postMessage({ type: 'preview', config: D, screen: screen, perfil: perfil }, location.origin);
   }
 
+  /* ================================================================ filtro de período (Leads e Funil)
+     O dia é o do computador de quem usa o painel (Brasília): "de 20/10 até 20/10" pega o dia 20
+     inteiro no horário daqui. Vai pro servidor em ISO, com o "até" exclusivo. */
+  var PRESETS = [['hoje', 'Hoje'], ['ontem', 'Ontem'], ['7', 'Últimos 7 dias'], ['30', 'Últimos 30 dias'], ['90', 'Últimos 90 dias'], ['tudo', 'Todo o período'], ['custom', 'Datas personalizadas']];
+  function hojeStr() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function montaFiltro(box, padrao, aoMudar) {
+    box.innerHTML = '<select class="df-preset" title="Período">' + PRESETS.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === padrao ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
+      '<span class="df-custom" hidden><input type="date" class="df-de" title="De"><span class="muted">até</span><input type="date" class="df-ate" title="Até"></span>';
+    var sel = box.querySelector('.df-preset'), cust = box.querySelector('.df-custom'), de = box.querySelector('.df-de'), ate = box.querySelector('.df-ate');
+    sel.onchange = function () {
+      cust.hidden = sel.value !== 'custom';
+      if (sel.value === 'custom') { if (!de.value) de.value = hojeStr(); if (!ate.value) ate.value = hojeStr(); }
+      aoMudar();
+    };
+    de.onchange = ate.onchange = function () { if (de.value && ate.value && de.value > ate.value) ate.value = de.value; aoMudar(); };
+  }
+  function periodoQs(box) {
+    var v = box.querySelector('.df-preset').value, h = new Date(); h.setHours(0, 0, 0, 0);
+    function dia(base, n) { var x = new Date(base); x.setDate(x.getDate() + n); return x; }
+    function deStr(t, mais) { var p = t.split('-'); return new Date(+p[0], +p[1] - 1, +p[2] + (mais || 0)); }
+    var de = null, ate = null;
+    if (v === 'hoje') { de = h; ate = dia(h, 1); }
+    else if (v === 'ontem') { de = dia(h, -1); ate = h; }
+    else if (/^\d+$/.test(v)) { de = dia(h, -(Number(v) - 1)); ate = dia(h, 1); }
+    else if (v === 'tudo') { de = new Date(2000, 0, 1); }
+    else if (v === 'custom') { var a = box.querySelector('.df-de').value, b = box.querySelector('.df-ate').value; if (a) de = deStr(a); if (b) ate = deStr(b, 1); }
+    return (de ? '&from=' + encodeURIComponent(de.toISOString()) : '') + (ate ? '&to=' + encodeURIComponent(ate.toISOString()) : '');
+  }
+
   /* ================================================================ leads */
   var leadsPage = 1, leadsQ = '', leadsData = null;
+  montaFiltro($('#leads-datef'), 'tudo', function () { loadLeads(1); });
   function loadLeads(page) {
     leadsPage = page || 1; leadsQ = $('#leads-q').value.trim();
     $('#leads-tbl').innerHTML = '<tr><td class="empty">Carregando…</td></tr>';
-    api('/api/admin/leads?page=' + leadsPage + '&q=' + encodeURIComponent(leadsQ)).then(function (d) {
+    api('/api/admin/leads?page=' + leadsPage + '&q=' + encodeURIComponent(leadsQ) + periodoQs($('#leads-datef'))).then(function (d) {
       leadsData = d;
       var per = {}; (d.porPerfil || []).forEach(function (r) { per[r.perfil] = r.n; });
-      $('#leads-kpis').innerHTML = kpi('Leads no total', d.total) + kpi('Perfil R1 · escorre', per.R1 || 0) + kpi('Perfil R2 · dívida', per.R2 || 0) + kpi('Perfil R3 · guarda', per.R3 || 0);
-      if (!d.items.length) { $('#leads-tbl').innerHTML = '<tr><td class="empty">Nenhum lead ' + (leadsQ ? 'pra essa busca' : 'ainda') + '.</td></tr>'; $('#leads-pager').innerHTML = ''; return; }
+      var tudo = $('#leads-datef .df-preset').value === 'tudo';
+      $('#leads-kpis').innerHTML = kpi(tudo ? 'Leads no total' : 'Leads no período', d.total) + kpi('Perfil R1 · escorre', per.R1 || 0) + kpi('Perfil R2 · dívida', per.R2 || 0) + kpi('Perfil R3 · guarda', per.R3 || 0);
+      if (!d.items.length) { $('#leads-tbl').innerHTML = '<tr><td class="empty">Nenhum lead ' + (leadsQ ? 'pra essa busca' : (tudo ? 'ainda' : 'nesse período')) + '.</td></tr>'; $('#leads-pager').innerHTML = ''; return; }
       $('#leads-tbl').innerHTML = '<thead><tr><th>Data</th><th>Nome</th><th>WhatsApp</th><th>E-mail</th><th>Perfil</th><th>Renda</th><th>Sobra</th><th>Diferença/mês</th><th>Campanha</th><th>Anúncio</th></tr></thead><tbody>' +
         d.items.map(function (r, i) {
           return '<tr data-i="' + i + '"><td>' + fmtDate(r.created_at) + '</td><td>' + esc(r.nome) + '</td><td><a href="https://wa.me/55' + esc(r.whatsapp) + '" target="_blank" rel="noopener">' + esc(fmtZap(r.whatsapp)) + '</a></td><td>' + esc(r.email) + '</td>' +
@@ -852,15 +883,15 @@
       '<div class="modal-acts"><a class="b" href="https://wa.me/55' + esc(r.whatsapp) + '" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="b b-pri" data-close>Fechar</button></div>');
   };
   $('#leads-csv').onclick = function () {
-    fetch('/api/admin/leads.csv', { headers: { 'Authorization': 'Bearer ' + PW } }).then(function (r) { if (!r.ok) throw new Error('Erro ' + r.status); return r.blob(); })
+    fetch('/api/admin/leads.csv?q=' + encodeURIComponent($('#leads-q').value.trim()) + periodoQs($('#leads-datef')), { headers: { 'Authorization': 'Bearer ' + PW } }).then(function (r) { if (!r.ok) throw new Error('Erro ' + r.status); return r.blob(); })
       .then(function (blob) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'leads-quiz-analise-cxl.csv'; document.body.appendChild(a); a.click(); a.remove(); })
       .catch(function (e) { toast(e.message, true); });
   };
 
   /* ================================================================ funil */
+  montaFiltro($('#funil-datef'), '30', function () { loadFunnel(false); });
   function loadFunnel(silent) {
-    var days = $('#funil-days').value;
-    return api('/api/admin/funnel?days=' + days).then(function (d) {
+    return api('/api/admin/funnel?days=30' + periodoQs($('#funil-datef'))).then(function (d) {
       funnel = {}; (d.steps || []).forEach(function (r) { funnel[r.step] = r.n; });
       renderCanvas();
       if (!silent || !$('#v-funil').hidden) renderFunnel(d);
@@ -883,7 +914,6 @@
       }).join('');
   }
   $('#funil-reload').onclick = function () { loadFunnel(false); };
-  $('#funil-days').onchange = function () { loadFunnel(false); };
 
   /* ================================================================ configurações */
   function renderConfig() {

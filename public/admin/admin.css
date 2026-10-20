@@ -242,3 +242,7 @@ body.dragging-any, body.dragging-any * { cursor: grabbing !important; user-selec
 .nf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .nf-chip { border: 1.5px solid var(--line-2); background: #fff; border-radius: 99px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--ink); }
 .nf-chip.on { border-color: var(--pri); background: rgba(31,163,74,.1); color: var(--pri-d); font-weight: 700; }
+.datef { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.df-custom { display: inline-flex; align-items: center; gap: 6px; }
+.df-custom[hidden] { display: none; }
+.datef input[type=date] { width: auto; }

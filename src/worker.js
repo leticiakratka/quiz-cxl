@@ -17,9 +17,9 @@
  *   POST /api/admin/publish           rascunho -> publicado (guarda histórico)
  *   GET  /api/admin/history           últimas publicações
  *   POST /api/admin/restore?id=N      volta uma publicação antiga pro rascunho
- *   GET  /api/admin/leads?q=&page=    lista de leads
- *   GET  /api/admin/leads.csv         exportação
- *   GET  /api/admin/funnel?days=30    sessões que chegaram em cada tela
+ *   GET  /api/admin/leads?q=&page=&from=&to=   lista de leads (período em ISO, to exclusivo)
+ *   GET  /api/admin/leads.csv?q=&from=&to=     exportação (mesmo filtro da tela)
+ *   GET  /api/admin/funnel?from=&to= (ou days=30)  sessões que chegaram em cada tela
  *
  * O resto é arquivo estático da pasta public/ (quiz em /, painel em /admin/).
  * As tabelas se criam sozinhas no primeiro acesso (schema.sql tem o mesmo SQL).
@@ -166,6 +166,19 @@ async function repassaWebhook(url, lead) {
   } catch (e) { /* webhook é opcional, o lead já está no D1 */ }
 }
 
+/* período vindo do painel: ?from= e ?to= em ISO (UTC), "to" exclusivo. O painel converte o dia de
+   Brasília em ISO, então "de 20/10 até 20/10" pega o dia 20 inteiro no horário daqui. */
+const isoOk = (v) => (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/.test(v || '') ? v : '');
+function filtroLeads(url) {
+  const conds = [], args = [];
+  const q = corta(url.searchParams.get('q'), 80).trim();
+  if (q) { const l = '%' + q + '%'; conds.push('(nome LIKE ? OR email LIKE ? OR whatsapp LIKE ? OR utm_campaign LIKE ?)'); args.push(l, l, l, l); }
+  const de = isoOk(url.searchParams.get('from')), ate = isoOk(url.searchParams.get('to'));
+  if (de) { conds.push('created_at >= ?'); args.push(de); }
+  if (ate) { conds.push('created_at < ?'); args.push(ate); }
+  return { where: conds.length ? 'WHERE ' + conds.join(' AND ') : '', args };
+}
+
 function csvCampo(v) {
   const s = v == null ? '' : String(v);
   return /[",;\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -309,18 +322,17 @@ export default {
         }
 
         if (p === '/api/admin/leads' && request.method === 'GET') {
-          const q = corta(url.searchParams.get('q'), 80).trim();
           const page = Math.max(1, Number(url.searchParams.get('page')) || 1), size = 50;
-          const filtro = q ? `WHERE nome LIKE ?1 OR email LIKE ?1 OR whatsapp LIKE ?1 OR utm_campaign LIKE ?1` : '';
-          const args = q ? ['%' + q + '%'] : [];
-          const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM leads ${filtro}`).bind(...args).first();
-          const { results } = await env.DB.prepare(`SELECT id, created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_campaign, utm_content, respostas FROM leads ${filtro} ORDER BY id DESC LIMIT ${size} OFFSET ${(page - 1) * size}`).bind(...args).all();
-          const porPerfil = await env.DB.prepare('SELECT perfil, COUNT(*) AS n FROM leads GROUP BY perfil').all();
+          const { where, args } = filtroLeads(url);
+          const total = await env.DB.prepare(`SELECT COUNT(*) AS n FROM leads ${where}`).bind(...args).first();
+          const { results } = await env.DB.prepare(`SELECT id, created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_campaign, utm_content, respostas FROM leads ${where} ORDER BY id DESC LIMIT ${size} OFFSET ${(page - 1) * size}`).bind(...args).all();
+          const porPerfil = await env.DB.prepare(`SELECT perfil, COUNT(*) AS n FROM leads ${where} GROUP BY perfil`).bind(...args).all();
           return json({ total: total.n, page, size, items: results, porPerfil: porPerfil.results });
         }
 
         if (p === '/api/admin/leads.csv' && request.method === 'GET') {
-          const { results } = await env.DB.prepare('SELECT created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_medium, utm_campaign, utm_content, utm_term, respostas FROM leads ORDER BY id DESC LIMIT 20000').all();
+          const { where, args } = filtroLeads(url);
+          const { results } = await env.DB.prepare(`SELECT created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_medium, utm_campaign, utm_content, utm_term, respostas FROM leads ${where} ORDER BY id DESC LIMIT 20000`).bind(...args).all();
           const cab = ['data', 'nome', 'whatsapp', 'email', 'perfil', 'renda', 'sobra', 'diferenca_mes', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'respostas'];
           const linhas = results.map((r) => [r.created_at, r.nome, r.whatsapp, r.email, r.perfil, r.renda, r.sobra, r.gap_mes, r.utm_source, r.utm_medium, r.utm_campaign, r.utm_content, r.utm_term, r.respostas].map(csvCampo).join(';'));
           return new Response('﻿' + [cab.join(';'), ...linhas].join('\n'), {
@@ -329,17 +341,18 @@ export default {
         }
 
         if (p === '/api/admin/funnel' && request.method === 'GET') {
-          const dias = Math.min(365, Math.max(1, Number(url.searchParams.get('days')) || 30));
-          const desde = new Date(Date.now() - dias * 86400000).toISOString();
+          const dias = Math.min(3650, Math.max(1, Number(url.searchParams.get('days')) || 30));
+          const desde = isoOk(url.searchParams.get('from')) || new Date(Date.now() - dias * 86400000).toISOString();
+          const ate = isoOk(url.searchParams.get('to')) || '9999-12-31T00:00:00.000Z';
           /* sessões novas (tabela sessions, lista de telas em JSON) + histórico antigo (events, 1 linha por tela) */
           const { results } = await env.DB.prepare(
             `SELECT step, COUNT(DISTINCT sid) AS n FROM (
-               SELECT sid, step FROM events WHERE created_at >= ?1
+               SELECT sid, step FROM events WHERE created_at >= ?1 AND created_at < ?2
                UNION ALL
-               SELECT s.sid AS sid, j.value AS step FROM sessions s, json_each(s.steps) j WHERE s.created_at >= ?1
+               SELECT s.sid AS sid, j.value AS step FROM sessions s, json_each(s.steps) j WHERE s.created_at >= ?1 AND s.created_at < ?2
              ) GROUP BY step`
-          ).bind(desde).all();
-          const leads = await env.DB.prepare('SELECT COUNT(*) AS n FROM leads WHERE created_at >= ?').bind(desde).first();
+          ).bind(desde, ate).all();
+          const leads = await env.DB.prepare('SELECT COUNT(*) AS n FROM leads WHERE created_at >= ?1 AND created_at < ?2').bind(desde, ate).first();
           return json({ days: dias, steps: results, leads: leads.n });
         }
 
