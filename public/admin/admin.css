@@ -239,3 +239,6 @@ body.dragging-any, body.dragging-any * { cursor: grabbing !important; user-selec
 .f.chkf { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .f.chkf input { width: auto; margin: 0; }
 .f.chkf span { margin: 0; font-weight: 600; }
+.nf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.nf-chip { border: 1.5px solid var(--line-2); background: #fff; border-radius: 99px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--ink); }
+.nf-chip.on { border-color: var(--pri); background: rgba(31,163,74,.1); color: var(--pri-d); font-weight: 700; }

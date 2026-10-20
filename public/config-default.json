@@ -610,6 +610,136 @@
       "seconds": 8
     }
   ],
+  "flowNotifs": [
+    {
+      "after": "divida",
+      "enabled": true,
+      "app": "Conta",
+      "icon": "conta",
+      "seconds": 4,
+      "cases": [
+        {
+          "codes": [
+            "nao"
+          ],
+          "title": "Fatura paga à vista 💳",
+          "text": "Sem juros, sem parcela pendurada."
+        },
+        {
+          "codes": [],
+          "title": "Última parcela quitada ✅",
+          "text": "Você não tem mais dívidas."
+        }
+      ]
+    },
+    {
+      "after": "reserva",
+      "enabled": true,
+      "app": "Conta",
+      "icon": "conta",
+      "seconds": 4,
+      "cases": [
+        {
+          "codes": [
+            "mais3"
+          ],
+          "title": "Sua reserva bateu 12 meses 🛟",
+          "text": "Um ano inteiro do seu custo de vida guardado."
+        },
+        {
+          "codes": [],
+          "title": "Reserva de emergência completa 🛟",
+          "text": "6 meses do seu custo de vida guardados."
+        }
+      ]
+    },
+    {
+      "after": "fatura",
+      "enabled": true,
+      "app": "Investimentos",
+      "icon": "invest",
+      "seconds": 4,
+      "cases": [
+        {
+          "codes": [],
+          "title": "Proventos recebidos 📈",
+          "text": "O rendimento dos seus investimentos caiu na conta."
+        }
+      ]
+    },
+    {
+      "after": "conquista",
+      "enabled": true,
+      "app": "Conta",
+      "icon": "conta",
+      "seconds": 4,
+      "cases": [
+        {
+          "codes": [
+            "investir"
+          ],
+          "app": "Investimentos",
+          "icon": "invest",
+          "title": "Seus investimentos estão rendendo 📈",
+          "text": "O rendimento deste mês já está na sua conta."
+        },
+        {
+          "codes": [
+            "viajar"
+          ],
+          "title": "Viagem paga à vista ✈️",
+          "text": "Nenhuma parcela no cartão."
+        },
+        {
+          "codes": [
+            "cartao"
+          ],
+          "title": "Fatura do cartão: R$0,00 💳",
+          "text": "Cartão quitado de vez."
+        },
+        {
+          "codes": [
+            "imovel"
+          ],
+          "title": "Entrada do imóvel guardada 🏡",
+          "text": "A meta que você definiu foi batida."
+        },
+        {
+          "codes": [
+            "pais"
+          ],
+          "title": "Transferência enviada 💙",
+          "text": "Ajuda pros seus pais, sem apertar o seu mês."
+        },
+        {
+          "codes": [
+            "reserva"
+          ],
+          "title": "Reserva de emergência: meta batida 🛟",
+          "text": "Agora o imprevisto sai daqui, não do cartão."
+        },
+        {
+          "codes": [
+            "filhos"
+          ],
+          "title": "Compra aprovada 🎁",
+          "text": "E ainda sobrou dinheiro no mês."
+        },
+        {
+          "codes": [
+            "brigar"
+          ],
+          "title": "Mês fechado no azul 💚",
+          "text": "Sem discussão sobre dinheiro em casa."
+        },
+        {
+          "codes": [],
+          "title": "Meta do mês batida 💚",
+          "text": "Mais um mês com dinheiro sobrando."
+        }
+      ]
+    }
+  ],
   "profiles": {
     "R1": {
       "name": "Você ganha bem, mas o seu dinheiro escorre sem você ver",

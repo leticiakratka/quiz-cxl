@@ -223,6 +223,7 @@
       if (s.tip) tags += '<span class="tag tip">dica</span>';
       if (usesVars(s).length) tags += '<span class="tag var">{{' + usesVars(s)[0] + '}}</span>';
       if (s.options) tags += '<span class="tag">' + s.options.length + ' opções</span>';
+      if (nfIdx(s.id) >= 0) tags += '<span class="tag" title="Mostra uma notificação depois dessa resposta">🔔</span>';
     }
     var arrasta = n.kind === 'screen' && movable(n.s) ? ' data-drag="1" title="Arraste pra mudar a ordem"' : '';
     return '<div class="node' + (sel === n.key ? ' sel' : '') + '" data-key="' + esc(n.key) + '"' + arrasta + ' style="left:' + p.x + 'px;top:' + p.y + 'px;width:' + p.w + 'px;height:' + p.h + 'px;--c:' + t.color + '">' +
@@ -588,10 +589,11 @@
         break;
       case 'single':
         h += fText('Pergunta', p + 'title', { area: true, rows: 2, vars: true }) + fText('Texto de apoio', p + 'help', { ph: 'opcional' }) + optionsEditor(s, i) +
-          '<div class="ed-sec"><h4>Dica depois da resposta</h4>' + fText('Texto da dica', p + 'tip', { area: true, vars: true, hint: 'Com dica, a pessoa vê o texto e toca em Continuar. Sem dica (campo vazio), avança sozinha ao tocar.' }) + '</div>';
+          '<div class="ed-sec"><h4>Dica depois da resposta</h4>' + fText('Texto da dica', p + 'tip', { area: true, vars: true, hint: 'Com dica, a pessoa vê o texto e toca em Continuar. Sem dica (campo vazio), avança sozinha ao tocar.' }) + '</div>' +
+          notifEditor(s);
         break;
       case 'multi':
-        h += fText('Pergunta', p + 'title', { area: true, rows: 2, vars: true }) + fText('Texto de apoio', p + 'help') + fText('Botão', p + 'button') + optionsEditor(s, i);
+        h += fText('Pergunta', p + 'title', { area: true, rows: 2, vars: true }) + fText('Texto de apoio', p + 'help') + fText('Botão', p + 'button') + optionsEditor(s, i) + notifEditor(s);
         break;
       case 'input':
         h += fText('Título', p + 'title', { area: true, rows: 2 }) + fText('Pergunta (serifada)', p + 'question') + fText('Placeholder', p + 'placeholder') + fText('Texto pequeno', p + 'small') + fText('Botão', p + 'button');
@@ -620,6 +622,29 @@
         break;
     }
     return h;
+  }
+
+  /* notificação do meio do quiz ligada a uma pergunta (D.flowNotifs, campo "after" = id da pergunta) */
+  function nfIdx(id) { var a = (D && D.flowNotifs) || []; for (var i = 0; i < a.length; i++) if (a[i].after === id) return i; return -1; }
+  function icSelect(path, v, herda) {
+    var ops = (herda ? [['', 'Igual ao da notificação']] : []).concat([['conta', 'Banco (cinza)'], ['invest', 'Investimentos (gráfico)'], ['caixa', 'Cifrão (verde)']]);
+    return '<select data-path="' + path + '">' + ops.map(function (o) { return '<option value="' + o[0] + '"' + ((v || '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+  }
+  function notifEditor(s) {
+    var k = nfIdx(s.id), h = '<div class="ed-sec"><h4>🔔 Notificação depois dessa resposta</h4>';
+    if (k < 0) return h + '<div class="ed-note">Aparece no topo, como notificação de celular, logo depois que a pessoa responde, com um texto conforme a resposta. Sem som.</div><button class="add" data-act="nf-add">+ criar notificação</button></div>';
+    var n = D.flowNotifs[k], p = 'flowNotifs.' + k + '.';
+    h += '<div class="ed-note">Aparece no topo logo depois da resposta e some em ' + (n.seconds || 4) + ' segundos. Vale o primeiro caso que bate com a resposta (na múltipla, pela ordem em que a pessoa marcou); o caso sem opção marcada é o padrão. Não aparece se a próxima tela for a captura ou o carregamento. Na prévia ela aparece nessa própria tela.</div>' +
+      fCheck('Mostrar essa notificação', p + 'enabled') + fText('Nome do app', p + 'app') + '<label class="f"><span>Ícone</span>' + icSelect(p + 'icon', n.icon || 'conta') + '</label>';
+    h += (n.cases || []).map(function (c, j) {
+      var q = p + 'cases.' + j + '.', cods = c.codes || [];
+      var chips = s.options.map(function (o) { return '<button type="button" class="nf-chip' + (cods.indexOf(o.code) >= 0 ? ' on' : '') + '" data-act="nf-code" data-c="' + j + '" data-code="' + esc(o.code) + '">' + esc(plain(o.label)) + '</button>'; }).join('');
+      return '<div class="blk-card"><div class="bh"><b>' + (cods.length ? 'Caso ' + (j + 1) : 'Caso padrão (qualquer outra resposta)') + '</b><div class="acts"><button class="ib" data-act="nf-case-up" data-c="' + j + '" title="Subir">↑</button><button class="ib del" data-act="nf-case-del" data-c="' + j + '" title="Remover">✕</button></div></div>' +
+        '<div class="f"><span>Quando a resposta for</span><div class="nf-chips">' + chips + '</div><small>Nenhuma marcada = caso padrão.</small></div>' +
+        fText('Título', q + 'title') + fText('Texto', q + 'text', { area: true, rows: 2 }) +
+        fText('Nome do app só nesse caso', q + 'app', { ph: 'igual ao da notificação' }) + '<label class="f"><span>Ícone só nesse caso</span>' + icSelect(q + 'icon', c.icon, true) + '</label></div>';
+    }).join('');
+    return h + '<button class="add" data-act="nf-case-add">+ caso</button> <button class="b b-sm b-danger" data-act="nf-del" style="margin-left:8px">Excluir notificação</button></div>';
   }
 
   function rulesEditor() {
@@ -761,6 +786,16 @@
       }
       if (act === 'blk-del') arr.splice(i, 1);
       if (act === 'blk-up' && i > 0) { var t3 = arr[i - 1]; arr[i - 1] = arr[i]; arr[i] = t3; }
+    }
+    if (act.indexOf('nf-') === 0 && n && n.kind === 'screen') {
+      D.flowNotifs = D.flowNotifs || [];
+      var k = nfIdx(n.s.id), nf = D.flowNotifs[k], c = Number(b.dataset.c);
+      if (act === 'nf-add' && k < 0) D.flowNotifs.push({ after: n.s.id, enabled: true, app: 'Conta', icon: 'conta', seconds: 4, cases: [{ codes: [], title: 'Novo título', text: 'Texto da notificação.' }] });
+      if (act === 'nf-del' && k >= 0) D.flowNotifs.splice(k, 1);
+      if (nf && act === 'nf-case-add') nf.cases.push({ codes: [], title: 'Novo título', text: '' });
+      if (nf && act === 'nf-case-del') nf.cases.splice(c, 1);
+      if (nf && act === 'nf-case-up' && c > 0) { var t4 = nf.cases[c - 1]; nf.cases[c - 1] = nf.cases[c]; nf.cases[c] = t4; }
+      if (nf && act === 'nf-code') { var cs = nf.cases[c].codes = nf.cases[c].codes || [], at = cs.indexOf(b.dataset.code); if (at >= 0) cs.splice(at, 1); else cs.push(b.dataset.code); }
     }
     markDirty(); renderEditor(); updateNode(sel); renderWarnings();
   });

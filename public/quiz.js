@@ -164,7 +164,7 @@
   }
 
   /* ------------------------------------------------------------- navegação */
-  function next() { S.hist.push(S.i); S.i = Math.min(S.i + 1, C.screens.length - 1); render(); }
+  function next() { var de = C.screens[S.i]; S.hist.push(S.i); S.i = Math.min(S.i + 1, C.screens.length - 1); render(); notifDepois(de); }
   function back() { if (S.hist.length) { S.i = S.hist.pop(); render(); } }
 
   var BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
@@ -527,38 +527,82 @@
       });
     } catch (e) { }
   }
-  var NF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg>';
+  var S_ = 'viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"';
+  /* ícones genéricos (sem marca de banco): caixa = cifrão verde, conta = banco cinza, invest = gráfico azul-petróleo */
+  var NF_ICONS = {
+    caixa: { bg: 'linear-gradient(160deg,#2EC262,#178A3D)', svg: '<svg ' + S_ + '><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg>' },
+    conta: { bg: 'linear-gradient(160deg,#5B6B82,#1E293B)', svg: '<svg ' + S_ + '><path d="M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18M12 3l9 5H3z"/></svg>' },
+    invest: { bg: 'linear-gradient(160deg,#22B8C8,#0E6E7A)', svg: '<svg ' + S_ + '><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>' }
+  };
+  /* notificação estilo celular: o: { app, time, title, text, icon, seconds, sound, onShow, onTap } */
+  function toastNotif(o) {
+    var velha = document.querySelector('.notif'); if (velha) velha.remove();
+    var ic = NF_ICONS[o.icon] || NF_ICONS.caixa;
+    var el = document.createElement('div');
+    el.className = 'notif'; el.setAttribute('role', 'status');
+    el.innerHTML = '<div class="nf-ic" aria-hidden="true" style="background:' + ic.bg + '">' + ic.svg + '</div><div class="nf-body"><div class="nf-top"><b>' + tpl(o.app) + '</b><span>' + tpl(o.time || 'agora') + '</span></div>' +
+      (o.title ? '<div class="nf-t">' + tpl(o.title) + '</div>' : '') + (o.text ? '<div class="nf-tx">' + tpl(o.text) + '</div>' : '') + '</div>';
+    document.body.appendChild(el);
+    requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('on'); }); });
+    if (o.sound && !PREVIEW) plim();
+    if (o.onShow) o.onShow();
+    var timer = setTimeout(fecha, Math.max(2, Number(o.seconds) || 5) * 1000), y0 = null, puxou = false;
+    function fecha() { clearTimeout(timer); el.classList.remove('on'); setTimeout(function () { el.remove(); }, 450); }
+    /* arrastar pra cima fecha, igual notificação de celular; toque faz o onTap (ou só fecha) */
+    el.addEventListener('pointerdown', function (e) { y0 = e.clientY; puxou = false; });
+    el.addEventListener('pointermove', function (e) {
+      if (y0 == null) return;
+      var dy = e.clientY - y0; if (dy < -6) { puxou = true; el.style.transition = 'none'; el.style.transform = 'translateY(' + dy + 'px)'; }
+    });
+    el.addEventListener('pointerup', function (e) {
+      var dy = y0 == null ? 0 : e.clientY - y0; y0 = null;
+      el.style.transition = ''; el.style.transform = '';
+      if (puxou) { if (dy < -30) fecha(); return; }
+      if (o.onTap) o.onTap();
+      fecha();
+    });
+  }
+  /* notificação do resultado: "você tem R$X de caixa livre", com plim-plim; toque leva ao preço */
   function notificacao() {
     var N = (C.result || {}).notify;
     if (!N || !N.enabled || NOTIF_VISTA || !(calc().meta > 0)) return;
     NOTIF_VISTA = true;
     setTimeout(function () {
-      var el = document.createElement('div');
-      el.className = 'notif'; el.setAttribute('role', 'status');
-      el.innerHTML = '<div class="nf-ic" aria-hidden="true">' + NF_ICON + '</div><div class="nf-body"><div class="nf-top"><b>' + tpl(N.app) + '</b><span>' + tpl(N.time) + '</span></div>' +
-        (N.title ? '<div class="nf-t">' + tpl(N.title) + '</div>' : '') + '<div class="nf-tx">' + tpl(N.text) + '</div></div>';
-      document.body.appendChild(el);
-      requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('on'); }); });
-      if (N.sound !== false && !PREVIEW) plim();
-      dl({ event: 'quiz_notificacao', acao: 'vista', quiz_id: QUIZ_ID }); beacon('notificacao_vista');
-      var timer = setTimeout(fecha, Math.max(2, Number(N.seconds) || 6) * 1000), y0 = null, puxou = false;
-      function fecha() { clearTimeout(timer); el.classList.remove('on'); setTimeout(function () { el.remove(); }, 450); }
-      /* toque leva até o preço; arrastar pra cima fecha, igual notificação de celular */
-      el.addEventListener('pointerdown', function (e) { y0 = e.clientY; puxou = false; });
-      el.addEventListener('pointermove', function (e) {
-        if (y0 == null) return;
-        var dy = e.clientY - y0; if (dy < -6) { puxou = true; el.style.transition = 'none'; el.style.transform = 'translateY(' + dy + 'px)'; }
-      });
-      el.addEventListener('pointerup', function (e) {
-        var dy = y0 == null ? 0 : e.clientY - y0; y0 = null;
-        el.style.transition = ''; el.style.transform = '';
-        if (puxou) { if (dy < -30) fecha(); return; }
-        dl({ event: 'quiz_notificacao', acao: 'tocada', quiz_id: QUIZ_ID }); beacon('notificacao_tocada');
-        var alvo = document.querySelector('.price') || document.getElementById('oferta');
-        if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        fecha();
+      toastNotif({
+        app: N.app, time: N.time, title: N.title, text: N.text, icon: 'caixa', seconds: N.seconds || 6, sound: N.sound !== false,
+        onShow: function () { dl({ event: 'quiz_notificacao', acao: 'vista', quiz_id: QUIZ_ID }); beacon('notificacao_vista'); },
+        onTap: function () {
+          dl({ event: 'quiz_notificacao', acao: 'tocada', quiz_id: QUIZ_ID }); beacon('notificacao_tocada');
+          var alvo = document.querySelector('.price') || document.getElementById('oferta');
+          if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       });
     }, Math.max(0, Number(N.delay) || 0) * 1000);
+  }
+  /* notificações do meio do quiz (C.flowNotifs): o futuro da pessoa, ligado à resposta que ela
+     acabou de dar. Cada uma tem "after" (id da pergunta) e "cases": o primeiro caso que bate com
+     a resposta (na ordem em que ela marcou) ganha; caso sem codes é o padrão. Sem som. */
+  var NF_FEITAS = {};
+  function casoNotif(n) {
+    var a = S.ans[n.after] || {}, meus = a.codes || (a.code ? [a.code] : []), cs = n.cases || [];
+    for (var i = 0; i < meus.length; i++) for (var j = 0; j < cs.length; j++) if ((cs[j].codes || []).indexOf(meus[i]) >= 0) return cs[j];
+    for (var k = 0; k < cs.length; k++) if (!(cs[k].codes || []).length) return cs[k];
+    return null;
+  }
+  function notifDoFluxo(id) { return (C.flowNotifs || []).filter(function (x) { return x.after === id && x.enabled !== false; })[0]; }
+  function mostraNotifFluxo(n) {
+    var c = casoNotif(n); if (!c) return;
+    toastNotif({ app: c.app || n.app, title: c.title, text: c.text, icon: c.icon || n.icon || 'conta', seconds: n.seconds || 4 });
+  }
+  function notifDepois(sc) {
+    if (PREVIEW || !sc) return;
+    var n = notifDoFluxo(sc.id); if (!n || NF_FEITAS[sc.id]) return;
+    NF_FEITAS[sc.id] = 1;
+    setTimeout(function () {
+      var atual = C.screens[S.i];
+      if (!atual || atual.type === 'capture' || atual.type === 'loading' || !document.querySelector('.screen')) return;
+      mostraNotifFluxo(n);
+    }, 800);
   }
 
   /* carrossel de depoimentos do resultado: primeiro o do perfil da pessoa, depois os outros
@@ -680,6 +724,10 @@
     C.screens.forEach(function (s, j) { if (s.id === d.screen) idx = j; });
     S.i = idx; if (idx > 0) S.hist = [idx - 1];
     render();
+    /* prévia: a pergunta que tem notificação mostra ela na hora, com as respostas de exemplo */
+    var nf = notifDoFluxo(d.screen), chave = nf ? d.screen + '|' + d.perfil + '|' + JSON.stringify(nf) : null;
+    if (nf && chave !== previewShow.ultNf) setTimeout(function () { mostraNotifFluxo(nf); }, 400);
+    previewShow.ultNf = chave;
   }
 
   /* ------------------------------------------------------------- boot */
