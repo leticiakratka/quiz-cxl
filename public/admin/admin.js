@@ -657,7 +657,7 @@
     h += '<div class="ed-sec"><h4>Pensa comigo</h4>' + fText('Título', r + 'roiTitle') + fText('Texto da diferença', r + 'roiGap', { area: true, vars: true, hint: 'Aparece quando a diferença por mês é maior que zero.' }) + fText('Texto do delivery', r + 'roiDelivery', { area: true, hint: 'Aparece quando a pessoa gasta R$300 ou mais com delivery e apps.' }) + '</div>';
     return h;
   }
-  var BLOCK_TYPES = { text: 'Texto', image: 'Imagem', testimonials: 'Carrossel de prints', list: 'Lista antes/depois', faq: 'Perguntas frequentes', cta: 'Botão de compra' };
+  var BLOCK_TYPES = { text: 'Texto', image: 'Imagem', testimonials: 'Carrossel de prints', list: 'Lista antes/depois', guarantee: 'Garantia', faq: 'Perguntas frequentes', cta: 'Botão de compra' };
   function blockEditor(b, j) {
     var p = 'offer.extraBlocks.' + j + '.', h = '<div class="blk-card"><div class="bh"><b>' + BLOCK_TYPES[b.type] + '</b><div class="acts"><button class="ib" data-act="blk-up" data-i="' + j + '">↑</button><button class="ib del" data-act="blk-del" data-i="' + j + '">✕</button></div></div>';
     h += fText('Título (opcional)', p + 'title');
@@ -668,6 +668,7 @@
       '<option value="ruim"' + (b.tone !== 'boa' ? ' selected' : '') + '>Vermelho com setas (a vida antes)</option>' +
       '<option value="boa"' + (b.tone === 'boa' ? ' selected' : '') + '>Verde com checks (a vida depois)</option></select></label>' +
       listEditor('Itens', p + 'items', { area: true, tpl: 'Novo item' });
+    if (b.type === 'guarantee') h += fText('Texto', p + 'text', { area: true, rows: 5, hint: 'Linha em branco separa os parágrafos. O selo verde aparece em cima do título.' });
     if (b.type === 'faq') h += (b.items || []).map(function (it, m) {
       return '<div class="list-row" style="grid-template-columns:1fr auto"><div>' + '<input data-path="' + p + 'items.' + m + '.q" value="' + esc(it.q) + '" placeholder="Pergunta"><textarea data-path="' + p + 'items.' + m + '.a" rows="2" placeholder="Resposta" style="margin-top:4px">' + esc(it.a) + '</textarea></div>' +
         '<div class="acts"><button class="ib del" data-act="list-del" data-path="' + p + 'items" data-i="' + m + '">✕</button></div></div>';
@@ -742,6 +743,7 @@
         if (tp === 'faq') { nb.title = 'Dúvidas'; nb.items = [{ q: 'Preciso saber mexer em Excel?', a: 'Não. Se você sabe copiar e colar, sabe usar.' }]; }
         if (tp === 'cta') { nb.text = ''; nb.button = ''; }
         if (tp === 'list') { nb.tone = 'boa'; nb.title = 'Título da lista'; nb.items = ['Primeiro item']; }
+        if (tp === 'guarantee') { nb.title = 'Garantia'; nb.text = 'Texto da garantia.'; }
         arr.push(nb);
       }
       if (act === 'blk-del') arr.splice(i, 1);

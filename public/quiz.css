@@ -262,6 +262,14 @@ strong { font-weight: 700; }
 .lst ul { list-style: none; display: grid; gap: 14px; margin-top: 16px; }
 .lst li { display: flex; gap: 12px; align-items: flex-start; font-size: 15.5px; line-height: 1.4; }
 .lst li svg { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+
+/* card de garantia (bloco extra depois da oferta) */
+.gar { background: #F7F7F6; border: 1px solid #E4E2DF; border-radius: 18px; padding: 26px 22px 24px; text-align: center; box-shadow: 0 14px 30px -24px rgba(27,21,18,.3); }
+.lst + .gar { margin-top: 14px; }
+.gar svg { display: block; width: 48px; height: 48px; margin: 0 auto; color: var(--primary); }
+.gar-t { font-size: clamp(15px, 4vw, 19px); line-height: 1.3; font-weight: 800; text-transform: uppercase; margin-top: 14px; }
+.gar-tx { margin-top: 12px; font-size: 16px; line-height: 1.45; }
+.gar-tx p + p { margin-top: 14px; }
 .blk-text p { margin-top: 8px; }
 .carousel { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; margin-top: 14px; }
 .carousel img { flex: 0 0 78%; scroll-snap-align: center; border-radius: 12px; border: 1px solid var(--border); max-height: 440px; object-fit: contain; background: #fff; }
