@@ -379,7 +379,7 @@
       "type": "testimonial",
       "kicker": "Pra você ver que dá",
       "title": "A Jhenifer começou com R$1 mil guardado. Hoje ela tem R$21 mil.",
-      "text": "Nos últimos meses ela conseguiu guardar **30% do que ganha**, já contando todos os gastos e ainda segurando uma grana pra chegar tranquila no fim do mês.\n\nEssa é a meta que eu uso com as minhas alunas: guardar até 30% do que ganham. Com a sua renda, {{nome}}, isso seria até **R${{meta_30}} por mês**.",
+      "text": "Nos últimos meses ela conseguiu guardar **30% do que ganha**, já contando todos os gastos e ainda segurando uma grana pra chegar tranquila no fim do mês.\n\nGuardar até 30% do que ganham é a meta que trabalhamos. Com a sua renda, {{nome}}, isso seria até **R${{meta_30}} por mês**.",
       "image": "img/depoimentos/jhenifer.webp",
       "caption": "Conversa da Jhenifer comigo no WhatsApp",
       "button": "Continuar"
