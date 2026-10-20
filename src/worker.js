@@ -95,19 +95,25 @@ async function limpaCacheConfig(request) {
 
 const escAttr = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* GTM e UTMify carregam depois do window.load (igual às outras páginas da Leticia) e não
-   carregam no localhost nem na prévia do admin, pra teste não virar evento no Pixel.
-   No localhost dá pra forçar com ?gtm=1. */
+/* GTM carrega logo na abertura (não espera o window.load), com as conexões do Google e do Meta
+   abertas cedo e o fbevents.js do Pixel (que o GTM injeta) já baixando em prioridade baixa. Medido
+   em 20/10/2026 no domínio real: PageView do Meta de 1,8 s pra 1,1 s no 4G normal e de 5,5 s pra
+   4,6 s no 4G lento, sem atrasar a capa no 4G normal. Quem fecha o quiz antes do PageView não vira
+   visualização da página de destino no Meta. A UTMify fica depois do load pra não disputar banda.
+   Nada disso carrega no localhost nem na prévia do admin (no localhost dá pra forçar com ?gtm=1). */
 function rastreioHtml(m) {
   const gtm = /^GTM-[A-Z0-9]{4,12}$/.test(m.gtmId || '') ? m.gtmId : '';
   const utmify = /^[a-f0-9]{24}$/i.test(m.utmifyPixelId || '') ? m.utmifyPixelId : '';
-  const head = `<script>window.dataLayer=window.dataLayer||[];window.__lckTrk=true;(function(){var loc=location;` +
+  const head = `<script>window.dataLayer=window.dataLayer||[];window.__lckTrk=true;(function(){var loc=location,d=document;` +
     `if(/[?&]preview=1/.test(loc.search))return;` +
     `if(/^(localhost|127\\.0\\.0\\.1|\\[::1\\])$/.test(loc.hostname)&&!/[?&]gtm=1/.test(loc.search))return;` +
-    `function go(){` +
-    (gtm ? `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');` : '') +
-    (utmify ? `window.pixelId='${utmify}';var u=document.createElement('script');u.src='https://cdn.utmify.com.br/scripts/pixel/pixel.js';u.async=true;u.defer=true;document.head.appendChild(u);` : '') +
-    `}if(document.readyState==='complete')go();else window.addEventListener('load',go);})();</script>`;
+    (gtm ? `function lk(r,h,a){var l=d.createElement('link');l.rel=r;l.href=h;if(a){l.as=a;l.fetchPriority='low';}d.head.appendChild(l);}` +
+      `lk('preconnect','https://www.googletagmanager.com');lk('preconnect','https://connect.facebook.net');lk('preconnect','https://www.facebook.com');` +
+      `lk('preload','https://connect.facebook.net/en_US/fbevents.js','script');` +
+      `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');` : '') +
+    (utmify ? `function ut(){window.pixelId='${utmify}';var u=d.createElement('script');u.src='https://cdn.utmify.com.br/scripts/pixel/pixel.js';u.async=true;u.defer=true;d.head.appendChild(u);}` +
+      `if(d.readyState==='complete')ut();else window.addEventListener('load',ut);` : '') +
+    `})();</script>`;
   const body = gtm ? `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${gtm}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>` : '';
   return { head, body };
 }
