@@ -868,7 +868,8 @@
     }).catch(function (e) { $('#leads-tbl').innerHTML = '<tr><td class="empty">' + esc(e.message) + '</td></tr>'; });
   }
   function fmtZap(z) { z = String(z || ''); return z.length === 11 ? '(' + z.slice(0, 2) + ') ' + z.slice(2, 7) + '-' + z.slice(7) : z; }
-  function kpi(l, v) { return '<div class="kpi"><span>' + esc(l) + '</span><b>' + esc(v) + '</b></div>'; }
+  function kpi(l, v, sub) { return '<div class="kpi"><span>' + esc(l) + '</span><b>' + esc(v) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>'; }
+  function taxa(a, b) { return b > 0 ? Math.round(a / b * 100) + '%' : '—'; }
   $('#leads-reload').onclick = function () { loadLeads(1); };
   $('#leads-q').onkeydown = function (e) { if (e.key === 'Enter') loadLeads(1); };
   $('#leads-pager').onclick = function (e) { var b = e.target.closest('button[data-p]'); if (b) loadLeads(Number(b.dataset.p)); };
@@ -906,9 +907,19 @@
     /* PageViews = pessoa de verdade com a capa na tela (toque/tecla ou 4 s visível, sem robô);
        começaram = tocaram em "Começar" (chegaram na 2ª tela) */
     var comecaram = D.screens[1] ? (funnel[D.screens[1].id] || 0) : 0;
-    $('#funil-kpis').innerHTML = kpi('PageViews', base) + kpi('Começaram o quiz', comecaram) + kpi('Leads capturados', d.leads) + kpi('Viram o resultado', funnel.resultado || 0) +
-      kpi('Tocaram na notificação', (funnel.notificacao_tocada || 0) + ' de ' + (funnel.notificacao_vista || 0)) + kpi('Clicaram em comprar', funnel.checkout_click || 0) +
-      kpi('PageView → lead', base ? Math.round(d.leads / base * 100) + '%' : '—');
+    /* cada card mostra a taxa sobre a etapa anterior; a 2ª linha mostra as taxas gerais a partir do PageView */
+    var res = funnel.resultado || 0, ck = funnel.checkout_click || 0, nv = funnel.notificacao_vista || 0, nt = funnel.notificacao_tocada || 0;
+    $('#funil-kpis').innerHTML =
+      kpi('PageViews', base, 'pessoas que viram a capa') +
+      kpi('Começaram o quiz', comecaram, taxa(comecaram, base) + ' dos PageViews') +
+      kpi('Leads capturados', d.leads, taxa(d.leads, comecaram) + ' de quem começou') +
+      kpi('Viram o resultado', res, taxa(res, d.leads) + ' dos leads') +
+      kpi('Tocaram na notificação', nt + ' de ' + nv, taxa(nt, nv) + ' de quem viu') +
+      kpi('Clicaram em comprar', ck, taxa(ck, res) + ' de quem viu o resultado') +
+      kpi('PageView → início', taxa(comecaram, base), 'força da capa') +
+      kpi('Início → lead', taxa(d.leads, comecaram), 'força do quiz') +
+      kpi('PageView → lead', taxa(d.leads, base), 'conversão da página em lead') +
+      kpi('PageView → clique em comprar', taxa(ck, base), 'do total que viu a capa');
     if (!base) { $('#funil').innerHTML = '<div class="empty">Ainda não tem visita nesse período.</div>'; return; }
     $('#funil').innerHTML = '<div class="fr head"><span></span><span>Tela</span><span></span><span class="n">Sessões</span><span class="pc">% início</span><span class="drop">Queda</span></div>' +
       rows.map(function (r, i) {
