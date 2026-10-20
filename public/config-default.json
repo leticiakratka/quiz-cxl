@@ -685,6 +685,24 @@
     "future": "Pensa em você daqui a alguns meses, {{nome}}, com dinheiro sobrando pra {{conquista}}, e se sentindo {{sentir}} toda vez que abre a conta.",
     "futureConquistaDefault": "montar a sua reserva de emergência",
     "futureSentirDefault": "tranquila",
+    "testimonialsTitle": "",
+    "moreTestimonials": [
+      {
+        "image": "img/depoimentos/tati.webp",
+        "name": "Tatiana",
+        "text": "Com clareza dos gastos, separou reservas pra dívida, emergência e viagens, e está quitando as dívidas. \"Me sinto livre, sabe?\""
+      },
+      {
+        "image": "img/depoimentos/francisco.webp",
+        "name": "Francisco",
+        "text": "\"Sempre gostei de usar planilha, mas a sua me deu mais clareza e maior controle do dinheiro!\""
+      },
+      {
+        "image": "img/depoimentos/endine.webp",
+        "name": "Endine",
+        "text": "\"Aulas e ferramentas maravilhosas!\" Terminou todas as aulas e está indicando pra todo mundo."
+      }
+    ],
     "roiTitle": "Pensa comigo",
     "roiGap": "O sistema custa R$97. A diferença que a sua análise mostrou é de até R${{gap_mes}} por mês. Se você recuperar só uma parte pequena disso no primeiro mês, ele já se pagou.",
     "roiDelivery": "E ele custa menos do que você gasta num mês só com {{gastos_lista}}."

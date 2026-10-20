@@ -488,7 +488,7 @@
   }
   function resultEditor() {
     var r = 'result.';
-    var h = '<div class="ed-note">Ordem da tela: título e perfil → card de números → "o que está entre você e esse número" → mecanismo → futuro → depoimento do perfil → pensa comigo → oferta.</div>';
+    var h = '<div class="ed-note">Ordem da tela: título e perfil → card de números → "o que está entre você e esse número" → mecanismo → futuro → depoimentos (carrossel) → pensa comigo → oferta.</div>';
     h += '<div class="ed-sec"><h4>Topo</h4>' + fText('Título', r + 'title', { vars: true }) + fText('Rótulo do perfil', r + 'profileLabel') + '</div>';
     h += '<div class="ed-sec"><h4>Card de números</h4>' + fText('Linha 1', r + 'labelPassou') + fText('Linha 2', r + 'labelSobra') + fText('Linha 3', r + 'labelMeta') + fText('Destaque', r + 'labelGapAno') + fText('Destaque quando já guarda 30%', r + 'gapZero') + fText('Texto pequeno', r + 'disclaimer', { area: true, rows: 2 }) +
       Object.keys(D.result.sobraDisplay || {}).map(function (k) { return fText('Sobra exibida · ' + k, r + 'sobraDisplay.' + k); }).join('') + '</div>';
@@ -501,6 +501,14 @@
     h += '<div class="ed-sec"><h4>Mecanismo</h4>' + fText('Título', r + 'mechanismTitle') + fText('Introdução', r + 'mechanismIntro') +
       (D.result.mechanism || []).map(function (m, j) { return '<div class="blk-card">' + fText('Ícone', r + 'mechanism.' + j + '.icon') + fText('Título', r + 'mechanism.' + j + '.title') + fText('Texto', r + 'mechanism.' + j + '.text', { area: true, rows: 2 }) + '</div>'; }).join('') + '</div>';
     h += '<div class="ed-sec"><h4>Futuro</h4>' + fText('Texto', r + 'future', { area: true, vars: true }) + fText('Se não marcar conquista', r + 'futureConquistaDefault') + fText('Se não marcar sentimento', r + 'futureSentirDefault') + '</div>';
+    h += '<div class="ed-sec"><h4>Depoimentos (carrossel)</h4><div class="ed-note">O primeiro card é o depoimento do perfil da pessoa. Depois vêm os dos outros dois perfis (edite nos blocos R1, R2 e R3) e por último estes. A pessoa arrasta pro lado.</div>' +
+      fText('Título acima do carrossel', r + 'testimonialsTitle', { ph: 'opcional' }) +
+      (D.result.moreTestimonials || []).map(function (t, j) {
+        var q = r + 'moreTestimonials.' + j + '.';
+        return '<div class="blk-card"><div class="bh"><b>Depoimento extra ' + (j + 1) + '</b><div class="acts"><button class="ib" data-act="list-up" data-path="result.moreTestimonials" data-i="' + j + '" title="Subir">↑</button><button class="ib del" data-act="list-del" data-path="result.moreTestimonials" data-i="' + j + '" title="Remover">✕</button></div></div>' +
+          fImage('Print', q + 'image') + fText('Nome', q + 'name') + fText('Texto', q + 'text', { area: true, rows: 2 }) + '</div>';
+      }).join('') +
+      '<button class="add" data-act="list-add" data-path="result.moreTestimonials" data-tpl=\'{"image":"","name":"","text":""}\'>+ depoimento</button></div>';
     h += '<div class="ed-sec"><h4>Pensa comigo</h4>' + fText('Título', r + 'roiTitle') + fText('Texto da diferença', r + 'roiGap', { area: true, vars: true, hint: 'Aparece quando a diferença por mês é maior que zero.' }) + fText('Texto do delivery', r + 'roiDelivery', { area: true, hint: 'Aparece quando a pessoa gasta R$300 ou mais com delivery e apps.' }) + '</div>';
     return h;
   }

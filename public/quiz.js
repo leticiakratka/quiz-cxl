@@ -483,6 +483,43 @@
     }
   }
 
+  /* carrossel de depoimentos do resultado: primeiro o do perfil da pessoa, depois os outros
+     dois perfis e os extras do config (result.moreTestimonials), sem repetir print */
+  function depoimentosHtml(pf, Rr) {
+    var Ps = C.profiles || {}, vistos = {}, lista = [];
+    function soma(img, nome, texto) {
+      if (!img && !texto) return;
+      if (img && vistos[img]) return;
+      if (img) vistos[img] = 1;
+      lista.push({ img: img, nome: nome, texto: texto });
+    }
+    var P = Ps[pf] || {};
+    soma(P.testimonialImage, P.testimonialName, P.testimonialText);
+    ['R1', 'R2', 'R3'].forEach(function (k) { if (k !== pf && Ps[k]) soma(Ps[k].testimonialImage, Ps[k].testimonialName, Ps[k].testimonialText); });
+    (Rr.moreTestimonials || []).forEach(function (t) { if (t) soma(t.image, t.name, t.text); });
+    if (!lista.length) return '';
+    var slides = lista.map(function (t) {
+      return '<figure class="testi tslide">' + (t.img ? '<img src="' + esc(t.img) + '" alt="Depoimento de ' + esc(t.nome || '') + '" loading="lazy" decoding="async">' : '') +
+        '<figcaption>' + (t.nome ? '<strong>' + esc(t.nome) + '</strong> · ' : '') + tpl(t.texto) + '</figcaption></figure>';
+    }).join('');
+    var dots = lista.length > 1 ? '<div class="tdots">' + lista.map(function (t, i) { return '<button type="button" data-i="' + i + '" aria-label="Depoimento ' + (i + 1) + ' de ' + lista.length + '"' + (i ? '' : ' class="on"') + '></button>'; }).join('') + '</div>' : '';
+    return '<section class="tsec">' + (Rr.testimonialsTitle ? '<h2 class="h2">' + tpl(Rr.testimonialsTitle) + '</h2>' : '') + '<div class="tcar">' + slides + '</div>' + dots + '</section>';
+  }
+  function bindCarrossel() {
+    var car = app.querySelector('.tcar'), dots = app.querySelectorAll('.tdots button');
+    if (!car || !dots.length) return;
+    var slides = car.querySelectorAll('.tslide'), raf = 0;
+    function atual() {
+      var meio = car.scrollLeft + car.clientWidth / 2, k = 0;
+      slides.forEach(function (s, i) { if (s.offsetLeft <= meio) k = i; });
+      dots.forEach(function (d, i) { d.classList.toggle('on', i === k); });
+    }
+    car.addEventListener('scroll', function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(atual); }, { passive: true });
+    dots.forEach(function (d) {
+      d.onclick = function () { var s = slides[+d.dataset.i]; car.scrollTo({ left: s.offsetLeft - (car.clientWidth - s.offsetWidth) / 2, behavior: 'smooth' }); };
+    });
+  }
+
   function renderResult(offerOnly) {
     var Rr = C.result || {}, pf = perfil(), P = (C.profiles || {})[pf] || {}, k = calc();
     var h = '<div class="result">';
@@ -501,7 +538,7 @@
       h += '<section><h2 class="h2">' + tpl(Rr.mechanismTitle) + '</h2>' + (Rr.mechanismIntro ? '<p class="mech-intro">' + tpl(Rr.mechanismIntro) + '</p>' : '') +
         '<div class="mech-items">' + (Rr.mechanism || []).map(function (m) { return '<div class="mech-item"><span class="ic">' + esc(m.icon || '•') + '</span><div><b>' + tpl(m.title) + '</b>' + tpl(m.text) + '</div></div>'; }).join('') + '</div></section>';
       if (Rr.future) h += '<section class="future"><p>' + tpl(Rr.future) + '</p></section>';
-      if (P.testimonialImage || P.testimonialText) h += '<section class="testi">' + (P.testimonialImage ? '<img src="' + esc(P.testimonialImage) + '" alt="Depoimento de ' + esc(P.testimonialName || '') + '" loading="lazy">' : '') + '<p><strong>' + esc(P.testimonialName || '') + '</strong> · ' + tpl(P.testimonialText) + '</p></section>';
+      h += depoimentosHtml(pf, Rr);
       var showGap = k.gap > 0, showDel = ['300a800', '800a1500', 'mais1500'].indexOf(code('delivery')) >= 0;
       if (showGap || showDel) h += '<section class="roi"><h2 class="h2">' + tpl(Rr.roiTitle) + '</h2>' + (showGap ? '<p>' + tpl(Rr.roiGap) + '</p>' : '') + (showDel ? '<p>' + tpl(Rr.roiDelivery) + '</p>' : '') + '</section>';
     }
@@ -511,6 +548,7 @@
     app.innerHTML = h;
     window.scrollTo(0, 0);
     bindCheckout();
+    bindCarrossel();
     if (!offerOnly) {
       try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ans: S.ans, nome: S.nome, ts: Date.now() })); } catch (e) { }
       dl({ event: 'quiz_result', quiz_id: QUIZ_ID, quiz_perfil: pf });
