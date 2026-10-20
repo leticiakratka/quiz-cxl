@@ -5,3 +5,7 @@ CREATE TABLE IF NOT EXISTS leads (id INTEGER PRIMARY KEY AUTOINCREMENT, created_
 CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at);
 CREATE TABLE IF NOT EXISTS events (sid TEXT NOT NULL, step TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (sid, step));
 CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);
+
+-- funil novo: 1 linha por sessão com a lista de telas (events fica só com o histórico antigo)
+CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, steps TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions(created_at);

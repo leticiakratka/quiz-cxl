@@ -6,8 +6,9 @@
  *
  * Rotas públicas
  *   GET  /api/config   config publicado (ou o config-default.json, se nunca publicou)
- *   POST /api/lead     grava o lead no D1 e, se tiver webhook no config, repassa
- *   POST /api/event    1 linha por (sessão, tela), pro funil
+ *   POST /api/lead     grava o lead no D1 (ignora reenvio da mesma sessão + e-mail) e, se tiver
+ *                      webhook no config, repassa; se o D1 falhar, o webhook ainda recebe
+ *   POST /api/event    lista de telas da sessão; 1 linha por sessão na tabela sessions, pro funil
  *
  * Rotas do admin (header Authorization: Bearer <ADMIN_PASSWORD>)
  *   POST /api/admin/login
@@ -30,7 +31,10 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS leads (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT NOT NULL, nome TEXT, whatsapp TEXT, email TEXT, perfil TEXT, renda TEXT, sobra TEXT, gap_mes INTEGER, utm_source TEXT, utm_medium TEXT, utm_campaign TEXT, utm_content TEXT, utm_term TEXT, sid TEXT, page TEXT, respostas TEXT)`,
   `CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at)`,
   `CREATE TABLE IF NOT EXISTS events (sid TEXT NOT NULL, step TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (sid, step))`,
-  `CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at)`
+  `CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at)`,
+  /* funil novo: 1 linha por sessão com a lista de telas (events fica só com o histórico antigo) */
+  `CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, steps TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions(created_at)`
 ];
 let schemaPronto = false;
 
@@ -184,7 +188,9 @@ export default {
         return json(await configPublicado(env, request, ctx), 200, { 'Cache-Control': 'public, max-age=30' });
       }
 
-      await ensureSchema(env);
+      /* se o banco estiver fora (ex.: limite diário do plano), o lead ainda tem saída pelo webhook */
+      let bancoOk = true;
+      try { await ensureSchema(env); } catch (e) { bancoOk = false; }
 
       if (p === '/api/lead' && request.method === 'POST') {
         const d = await lerCorpo(request, 20000);
@@ -199,21 +205,48 @@ export default {
           utm_content: corta(u.utm_content, 200), utm_term: corta(u.utm_term, 200), sid: corta(d.sid, 60), page: corta(d.page, 500),
           respostas: JSON.stringify(d.respostas || {}).slice(0, 8000)
         };
-        await env.DB.prepare(
-          `INSERT INTO leads (created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_medium, utm_campaign, utm_content, utm_term, sid, page, respostas)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`
-        ).bind(lead.created_at, lead.nome, lead.whatsapp, lead.email, lead.perfil, lead.renda, lead.sobra, lead.gap_mes,
-          lead.utm_source, lead.utm_medium, lead.utm_campaign, lead.utm_content, lead.utm_term, lead.sid, lead.page, lead.respostas).run();
-        const row = await getRow(env, 'published');
-        const hook = row ? (JSON.parse(row.json).meta || {}).webhookUrl : '';
-        if (hook && /^https:\/\//.test(hook)) ctx.waitUntil(repassaWebhook(hook, { ...lead, respostas: d.respostas || {} }));
-        return json({ ok: true });
+        let gravou = false, repetido = false;
+        if (bancoOk) {
+          try {
+            /* o quiz reenvia quando a rede falha: mesma sessão + mesmo e-mail nas últimas 24h = já está salvo */
+            const ja = lead.sid ? await env.DB.prepare(`SELECT 1 FROM leads WHERE sid = ?1 AND email = ?2 AND created_at >= ?3 LIMIT 1`)
+              .bind(lead.sid, lead.email, new Date(Date.now() - 86400000).toISOString()).first() : null;
+            if (ja) repetido = true;
+            else {
+              await env.DB.prepare(
+                `INSERT INTO leads (created_at, nome, whatsapp, email, perfil, renda, sobra, gap_mes, utm_source, utm_medium, utm_campaign, utm_content, utm_term, sid, page, respostas)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)`
+              ).bind(lead.created_at, lead.nome, lead.whatsapp, lead.email, lead.perfil, lead.renda, lead.sobra, lead.gap_mes,
+                lead.utm_source, lead.utm_medium, lead.utm_campaign, lead.utm_content, lead.utm_term, lead.sid, lead.page, lead.respostas).run();
+            }
+            gravou = true;
+          } catch (e) { /* cai no webhook abaixo */ }
+        }
+        if (repetido) return json({ ok: true, repetido: true });
+        let hook = '';
+        try { hook = ((await configPublicado(env, request, ctx)).meta || {}).webhookUrl || ''; } catch (e) { }
+        const temHook = /^https:\/\//.test(hook);
+        if (temHook) ctx.waitUntil(repassaWebhook(hook, { ...lead, respostas: d.respostas || {} }));
+        /* sem banco e sem webhook: 503 faz o quiz guardar o lead no aparelho e tentar de novo depois */
+        if (!gravou && !temHook) return json({ ok: false, erro: 'não deu pra salvar agora' }, 503);
+        return json({ ok: true, banco: gravou });
       }
 
+      if (!bancoOk) return json({ erro: 'banco indisponível' }, 503);
+
+      /* funil: o quiz manda a lista de telas da sessão; vira 1 linha por sessão (união com o que já tinha) */
       if (p === '/api/event' && request.method === 'POST') {
-        const d = await lerCorpo(request, 2000);
-        const sid = corta(d.sid, 60), step = corta(d.step, 60);
-        if (sid && step) await env.DB.prepare('INSERT OR IGNORE INTO events (sid, step, created_at) VALUES (?, ?, ?)').bind(sid, step, agora()).run();
+        const d = await lerCorpo(request, 6000);
+        const sid = corta(d.sid, 60);
+        const passos = (Array.isArray(d.steps) ? d.steps : [d.step]).map((s) => corta(s, 60)).filter(Boolean).slice(0, 80);
+        if (sid && passos.length) {
+          const t = agora();
+          await env.DB.prepare(
+            `INSERT INTO sessions (sid, steps, created_at, updated_at) VALUES (?1, ?2, ?3, ?3)
+             ON CONFLICT(sid) DO UPDATE SET updated_at = excluded.updated_at,
+               steps = (SELECT json_group_array(value) FROM (SELECT value FROM json_each(sessions.steps) UNION SELECT value FROM json_each(excluded.steps)))`
+          ).bind(sid, JSON.stringify(passos), t).run();
+        }
         return new Response(null, { status: 204 });
       }
 
@@ -298,7 +331,14 @@ export default {
         if (p === '/api/admin/funnel' && request.method === 'GET') {
           const dias = Math.min(365, Math.max(1, Number(url.searchParams.get('days')) || 30));
           const desde = new Date(Date.now() - dias * 86400000).toISOString();
-          const { results } = await env.DB.prepare('SELECT step, COUNT(*) AS n FROM events WHERE created_at >= ? GROUP BY step').bind(desde).all();
+          /* sessões novas (tabela sessions, lista de telas em JSON) + histórico antigo (events, 1 linha por tela) */
+          const { results } = await env.DB.prepare(
+            `SELECT step, COUNT(DISTINCT sid) AS n FROM (
+               SELECT sid, step FROM events WHERE created_at >= ?1
+               UNION ALL
+               SELECT s.sid AS sid, j.value AS step FROM sessions s, json_each(s.steps) j WHERE s.created_at >= ?1
+             ) GROUP BY step`
+          ).bind(desde).all();
           const leads = await env.DB.prepare('SELECT COUNT(*) AS n FROM leads WHERE created_at >= ?').bind(desde).first();
           return json({ days: dias, steps: results, leads: leads.n });
         }

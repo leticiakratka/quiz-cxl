@@ -123,14 +123,25 @@
     return base + (base.indexOf('?') === -1 ? '?' : '&') + p.join('&');
   }
   function dl(obj) { if (PREVIEW) return; try { (window.dataLayer = window.dataLayer || []).push(obj); } catch (e) { } }
-  function beacon(step) {
-    if (PREVIEW) return;
-    try {
-      var body = JSON.stringify({ sid: S.sid, step: step });
-      if (navigator.sendBeacon) navigator.sendBeacon('/api/event', new Blob([body], { type: 'application/json' }));
-      else fetch('/api/event', { method: 'POST', body: body, headers: { 'Content-Type': 'application/json' }, keepalive: true });
-    } catch (e) { }
+  /* funil: em vez de 1 requisição e 1 gravação por tela, junta as telas visitadas e manda a lista
+     inteira poucas vezes (capa, a cada 6 telas novas, momentos importantes e quando a pessoa sai
+     da página). No banco vira 1 linha por sessão. Cerca de 85% menos gravações e requisições,
+     o que importa no limite diário do plano da Cloudflare. */
+  var PASSOS = [], ENVIADOS = 0;
+  function enviaPassos() {
+    if (PREVIEW || PASSOS.length === ENVIADOS) return;
+    ENVIADOS = PASSOS.length;
+    var body = JSON.stringify({ sid: S.sid, steps: PASSOS });
+    try { if (navigator.sendBeacon && navigator.sendBeacon('/api/event', new Blob([body], { type: 'application/json' }))) return; } catch (e) { }
+    try { fetch('/api/event', { method: 'POST', body: body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(function () { }); } catch (e) { }
   }
+  function beacon(step, urgente) {
+    if (PREVIEW) return;
+    if (PASSOS.indexOf(step) < 0) PASSOS.push(step);
+    if (urgente || PASSOS.length === 1 || PASSOS.length - ENVIADOS >= 6) enviaPassos();
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') enviaPassos(); });
+  window.addEventListener('pagehide', enviaPassos);
   function track(step, idx) {
     dl({ event: 'quiz_step', quiz_id: QUIZ_ID, quiz_step: step, quiz_step_index: idx });
     beacon(step);
@@ -434,8 +445,26 @@
     });
     if (PREVIEW) return;
     try { localStorage.setItem('cxl_analise_b_lead', JSON.stringify(payload)); } catch (e) { }
+    enviaLead(payload, 1);
+  }
+  /* o lead fica guardado no aparelho até o servidor confirmar. Falha de rede ou do servidor:
+     tenta de novo em 2, 5 e 12 s e, se ainda não deu, na próxima visita. O servidor ignora
+     repetição (mesma sessão + mesmo e-mail), então tentar de novo não duplica lead. */
+  var LEAD_PEND = 'cxl_analise_b_lead_pendente';
+  function enviaLead(payload, tentativa) {
+    try { localStorage.setItem(LEAD_PEND, JSON.stringify(payload)); } catch (e) { }
+    function deuCerto() { try { localStorage.removeItem(LEAD_PEND); } catch (e) { } }
+    function deNovo() { if (tentativa < 4) setTimeout(function () { enviaLead(payload, tentativa + 1); }, [0, 2000, 5000, 12000][tentativa]); }
     try {
-      fetch('/api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(function () { });
+      fetch('/api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true })
+        .then(function (r) { if (r.ok) deuCerto(); else if (r.status >= 500) deNovo(); else deuCerto(); /* 4xx = contato recusado, não adianta repetir */ })
+        .catch(deNovo);
+    } catch (e) { deNovo(); }
+  }
+  if (!PREVIEW) {
+    try {
+      var pend = JSON.parse(localStorage.getItem(LEAD_PEND) || 'null');
+      if (pend && pend.email) setTimeout(function () { enviaLead(pend, 1); }, 3000);
     } catch (e) { }
   }
 
@@ -572,7 +601,7 @@
         app: N.app, time: N.time, title: N.title, text: N.text, icon: 'caixa', seconds: N.seconds || 6, sound: N.sound !== false,
         onShow: function () { dl({ event: 'quiz_notificacao', acao: 'vista', quiz_id: QUIZ_ID }); beacon('notificacao_vista'); },
         onTap: function () {
-          dl({ event: 'quiz_notificacao', acao: 'tocada', quiz_id: QUIZ_ID }); beacon('notificacao_tocada');
+          dl({ event: 'quiz_notificacao', acao: 'tocada', quiz_id: QUIZ_ID }); beacon('notificacao_tocada', true);
           var alvo = document.querySelector('.price') || document.getElementById('oferta');
           if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -674,9 +703,9 @@
     if (!offerOnly) {
       try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ans: S.ans, nome: S.nome, ts: Date.now() })); } catch (e) { }
       dl({ event: 'quiz_result', quiz_id: QUIZ_ID, quiz_perfil: pf });
-      beacon('resultado');
+      beacon('resultado', true);
       notificacao();
-    } else beacon('oferta_direta');
+    } else beacon('oferta_direta', true);
   }
 
   function bindCheckout() {
@@ -687,7 +716,7 @@
       a.addEventListener('click', function () {
         a.href = checkoutUrl();
         dl({ event: 'quiz_checkout_click', quiz_id: QUIZ_ID, quiz_perfil: perfil(), posicao: a.dataset.pos || '' });
-        beacon('checkout_click');
+        beacon('checkout_click', true);
       }, true);
     });
   }
