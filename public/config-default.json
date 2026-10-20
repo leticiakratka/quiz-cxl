@@ -730,6 +730,34 @@
     "priceCash": "ou R$97 à vista",
     "button": "QUERO FAZER SOBRAR",
     "guarantee": "🔒 7 dias de garantia. Se você não se adaptar, devolvo todo o seu dinheiro.",
-    "extraBlocks": []
+    "extraBlocks": [
+      {
+        "type": "list",
+        "tone": "ruim",
+        "title": "VOCÊ SEM O MÉTODO CAIXA LIVRE",
+        "items": [
+          "Sensação constante de que deveria estar guardando mais",
+          "Desorganização financeira que gera ansiedade",
+          "Frustração por não ver seu patrimônio crescer",
+          "Medo de imprevistos financeiros",
+          "Não sabe como equilibrar aproveitar a vida e poupar",
+          "Receio de não conseguir realizar seus sonhos financeiros"
+        ]
+      },
+      {
+        "type": "list",
+        "tone": "boa",
+        "title": "VOCÊ DEPOIS DE 30 DIAS COM O MÉTODO CAIXA LIVRE",
+        "items": [
+          "Satisfação por finalmente ver seu dinheiro crescendo todo mês",
+          "Tem clareza e organização financeira sem complicações",
+          "Dorme tranquilo(a) sabendo que está construindo seu futuro",
+          "Tem segurança para lidar com qualquer imprevisto",
+          "Consegue aproveitar a vida hoje sem comprometer o amanhã",
+          "Tem um caminho claro para conquistar seus objetivos financeiros",
+          "Desenvolve uma relação saudável e próspera com o dinheiro"
+        ]
+      }
+    ]
   }
 }

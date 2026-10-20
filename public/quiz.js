@@ -478,6 +478,14 @@
       case 'image': return b.src ? '<section class="blk">' + t + '<img src="' + esc(b.src) + '" alt="' + esc(b.alt || '') + '" loading="lazy" style="border-radius:14px;margin-top:12px"></section>' : '';
       case 'testimonials': return '<section class="blk">' + t + '<div class="carousel">' + (b.images || []).filter(Boolean).map(function (src) { return '<img src="' + esc(src) + '" alt="Depoimento" loading="lazy">'; }).join('') + '</div></section>';
       case 'faq': return '<section class="blk faq">' + t + (b.items || []).map(function (it) { return '<details><summary>' + tpl(it.q) + '</summary><p>' + tpl(it.a) + '</p></details>'; }).join('') + '</section>';
+      /* lista antes/depois: tone "ruim" = card vermelho com setas, "boa" = card verde com checks */
+      case 'list':
+        var boa = b.tone === 'boa';
+        var ic = boa ? '<path d="M4.5 12.5l5 5L19.5 7"/>' : '<path d="M4 12h15M13 6l6 6-6 6"/>';
+        return '<section class="blk lst ' + (boa ? 'lst-boa' : 'lst-ruim') + '">' + (b.title ? '<h3 class="lst-t">' + tpl(b.title) + '</h3>' : '') +
+          '<ul>' + (b.items || []).filter(Boolean).map(function (it) {
+            return '<li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ic + '</svg><span>' + tpl(it) + '</span></li>';
+          }).join('') + '</ul></section>';
       case 'cta': return '<section class="blk" style="text-align:center">' + t + (b.text ? tpl(b.text, true) : '') + '<a class="btn js-checkout" href="' + esc(checkoutUrl()) + '" data-pos="bloco-' + i + '">' + tpl(b.button || (C.offer || {}).button) + '</a></section>';
       default: return '';
     }

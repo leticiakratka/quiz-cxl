@@ -657,13 +657,17 @@
     h += '<div class="ed-sec"><h4>Pensa comigo</h4>' + fText('Título', r + 'roiTitle') + fText('Texto da diferença', r + 'roiGap', { area: true, vars: true, hint: 'Aparece quando a diferença por mês é maior que zero.' }) + fText('Texto do delivery', r + 'roiDelivery', { area: true, hint: 'Aparece quando a pessoa gasta R$300 ou mais com delivery e apps.' }) + '</div>';
     return h;
   }
-  var BLOCK_TYPES = { text: 'Texto', image: 'Imagem', testimonials: 'Carrossel de prints', faq: 'Perguntas frequentes', cta: 'Botão de compra' };
+  var BLOCK_TYPES = { text: 'Texto', image: 'Imagem', testimonials: 'Carrossel de prints', list: 'Lista antes/depois', faq: 'Perguntas frequentes', cta: 'Botão de compra' };
   function blockEditor(b, j) {
     var p = 'offer.extraBlocks.' + j + '.', h = '<div class="blk-card"><div class="bh"><b>' + BLOCK_TYPES[b.type] + '</b><div class="acts"><button class="ib" data-act="blk-up" data-i="' + j + '">↑</button><button class="ib del" data-act="blk-del" data-i="' + j + '">✕</button></div></div>';
     h += fText('Título (opcional)', p + 'title');
     if (b.type === 'text') h += fText('Texto', p + 'text', { area: true, rows: 4, vars: true });
     if (b.type === 'image') h += fImage('Imagem', p + 'src') + fText('Descrição (acessibilidade)', p + 'alt');
     if (b.type === 'testimonials') h += listEditor('Prints (caminho ou link)', p + 'images', { tpl: 'img/depoimentos/tati.webp', hint: 'Disponíveis: ' + IMAGES.filter(function (x) { return x.indexOf('depoimentos') >= 0; }).join(', ') });
+    if (b.type === 'list') h += '<label class="f"><span>Estilo</span><select data-path="' + p + 'tone">' +
+      '<option value="ruim"' + (b.tone !== 'boa' ? ' selected' : '') + '>Vermelho com setas (a vida antes)</option>' +
+      '<option value="boa"' + (b.tone === 'boa' ? ' selected' : '') + '>Verde com checks (a vida depois)</option></select></label>' +
+      listEditor('Itens', p + 'items', { area: true, tpl: 'Novo item' });
     if (b.type === 'faq') h += (b.items || []).map(function (it, m) {
       return '<div class="list-row" style="grid-template-columns:1fr auto"><div>' + '<input data-path="' + p + 'items.' + m + '.q" value="' + esc(it.q) + '" placeholder="Pergunta"><textarea data-path="' + p + 'items.' + m + '.a" rows="2" placeholder="Resposta" style="margin-top:4px">' + esc(it.a) + '</textarea></div>' +
         '<div class="acts"><button class="ib del" data-act="list-del" data-path="' + p + 'items" data-i="' + m + '">✕</button></div></div>';
@@ -737,6 +741,7 @@
         if (tp === 'testimonials') { nb.title = 'Esse é o resultado de quem já usa o Caixa Livre'; nb.images = IMAGES.filter(function (x) { return x.indexOf('depoimentos') >= 0; }); }
         if (tp === 'faq') { nb.title = 'Dúvidas'; nb.items = [{ q: 'Preciso saber mexer em Excel?', a: 'Não. Se você sabe copiar e colar, sabe usar.' }]; }
         if (tp === 'cta') { nb.text = ''; nb.button = ''; }
+        if (tp === 'list') { nb.tone = 'boa'; nb.title = 'Título da lista'; nb.items = ['Primeiro item']; }
         arr.push(nb);
       }
       if (act === 'blk-del') arr.splice(i, 1);
