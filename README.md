@@ -50,3 +50,5 @@ npx wrangler@3 deploy
 ```
 
 No primeiro acesso o quiz usa o `config-default.json`. Entrar no painel, revisar e clicar em Publicar cria a primeira versão no banco.
+
+**Cuidado com conteúdo novo em código:** depois que existe versão publicada no banco, o quiz no ar usa o banco e ignora o `config-default.json`. Mudança de texto vai pelo painel. Se um deploy acrescentar campo novo no config (ex.: `result.moreTestimonials`), o rascunho e a versão publicada no banco também precisam receber esse campo, senão o próximo Publicar do painel apaga a novidade. Conferir com `npx wrangler@3 d1 execute quiz-cxl --remote --command "SELECT id, updated_at FROM quiz_config"`.
