@@ -903,9 +903,12 @@
     var base = funnel.capa || 0, prev = null, drops = [];
     rows.forEach(function (r) { r.n = funnel[r.id] || 0; r.pct = base ? r.n / base * 100 : 0; r.drop = prev != null && prev > 0 ? (prev - r.n) / prev * 100 : 0; prev = r.n; drops.push(r.drop); });
     var top = drops.slice().sort(function (a, b) { return b - a; }).slice(0, 3).filter(function (x) { return x > 0; });
-    $('#funil-kpis').innerHTML = kpi('Começaram (capa)', base) + kpi('Leads capturados', d.leads) + kpi('Viram o resultado', funnel.resultado || 0) +
+    /* PageViews = pessoa de verdade com a capa na tela (toque/tecla ou 4 s visível, sem robô);
+       começaram = tocaram em "Começar" (chegaram na 2ª tela) */
+    var comecaram = D.screens[1] ? (funnel[D.screens[1].id] || 0) : 0;
+    $('#funil-kpis').innerHTML = kpi('PageViews', base) + kpi('Começaram o quiz', comecaram) + kpi('Leads capturados', d.leads) + kpi('Viram o resultado', funnel.resultado || 0) +
       kpi('Tocaram na notificação', (funnel.notificacao_tocada || 0) + ' de ' + (funnel.notificacao_vista || 0)) + kpi('Clicaram em comprar', funnel.checkout_click || 0) +
-      kpi('Capa → lead', base ? Math.round(d.leads / base * 100) + '%' : '—');
+      kpi('PageView → lead', base ? Math.round(d.leads / base * 100) + '%' : '—');
     if (!base) { $('#funil').innerHTML = '<div class="empty">Ainda não tem visita nesse período.</div>'; return; }
     $('#funil').innerHTML = '<div class="fr head"><span></span><span>Tela</span><span></span><span class="n">Sessões</span><span class="pc">% início</span><span class="drop">Queda</span></div>' +
       rows.map(function (r, i) {
