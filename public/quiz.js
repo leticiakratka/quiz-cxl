@@ -489,6 +489,9 @@
       case 'guarantee':
         return '<section class="blk gar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89 17 22l-5-3-5 3 1.52-9.11"/></svg>' +
           (b.title ? '<h3 class="gar-t">' + tpl(b.title) + '</h3>' : '') + (b.text ? '<div class="gar-tx">' + tpl(b.text, true) + '</div>' : '') + '</section>';
+      case 'about':
+        return '<section class="blk sobre">' + (b.image ? '<img class="sobre-foto" src="' + esc(b.image) + '" alt="' + esc(b.alt || '') + '" width="180" height="180" loading="lazy" decoding="async">' : '') +
+          (b.title ? '<h2 class="h2">' + tpl(b.title) + '</h2>' : '') + (b.text ? '<div class="sobre-tx">' + tpl(b.text, true) + '</div>' : '') + '</section>';
       case 'cta': return '<section class="blk" style="text-align:center">' + t + (b.text ? tpl(b.text, true) : '') + '<a class="btn js-checkout" href="' + esc(checkoutUrl()) + '" data-pos="bloco-' + i + '">' + tpl(b.button || (C.offer || {}).button) + '</a></section>';
       default: return '';
     }
