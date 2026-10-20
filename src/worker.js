@@ -179,6 +179,12 @@ function filtroLeads(url) {
   return { where: conds.length ? 'WHERE ' + conds.join(' AND ') : '', args };
 }
 
+/* robôs não entram no funil (o quiz também filtra do lado de lá). CORTE_ROBO: antes da correção de
+   20/10/2026 a capa contava no carregamento, então sessão antiga que só tem a capa é quase toda robô
+   ou pré-carregamento do Meta (502 de 521 nas primeiras horas de anúncio). Fica no banco, só não conta. */
+const ROBO_UA = /bot|crawler|spider|crawling|headless|lighthouse|facebookexternalhit|facebot|meta-externalagent|meta-externalfetcher|preview|prerender/i;
+const CORTE_ROBO = '2026-10-20T18:04:10.000Z';
+
 function csvCampo(v) {
   const s = v == null ? '' : String(v);
   return /[",;\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -250,6 +256,7 @@ export default {
       /* funil: o quiz manda a lista de telas da sessão; vira 1 linha por sessão (união com o que já tinha) */
       if (p === '/api/event' && request.method === 'POST') {
         const d = await lerCorpo(request, 6000);
+        if (ROBO_UA.test(request.headers.get('User-Agent') || '')) return new Response(null, { status: 204 });
         const sid = corta(d.sid, 60);
         const passos = (Array.isArray(d.steps) ? d.steps : [d.step]).map((s) => corta(s, 60)).filter(Boolean).slice(0, 80);
         if (sid && passos.length) {
@@ -348,10 +355,12 @@ export default {
           const { results } = await env.DB.prepare(
             `SELECT step, COUNT(DISTINCT sid) AS n FROM (
                SELECT sid, step FROM events WHERE created_at >= ?1 AND created_at < ?2
+                 AND sid IN (SELECT sid FROM events GROUP BY sid HAVING COUNT(*) > 1)
                UNION ALL
                SELECT s.sid AS sid, j.value AS step FROM sessions s, json_each(s.steps) j WHERE s.created_at >= ?1 AND s.created_at < ?2
+                 AND NOT (s.steps = '["capa"]' AND s.created_at < ?3)
              ) GROUP BY step`
-          ).bind(desde, ate).all();
+          ).bind(desde, ate, CORTE_ROBO).all();
           const leads = await env.DB.prepare('SELECT COUNT(*) AS n FROM leads WHERE created_at >= ?1 AND created_at < ?2').bind(desde, ate).first();
           return json({ days: dias, steps: results, leads: leads.n });
         }

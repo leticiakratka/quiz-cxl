@@ -128,6 +128,22 @@
      da página). No banco vira 1 linha por sessão. Cerca de 85% menos gravações e requisições,
      o que importa no limite diário do plano da Cloudflare. */
   var PASSOS = [], ENVIADOS = 0;
+  /* robôs (inclusive os do Meta que abrem o link do anúncio pra revisar) e o pré-carregamento do
+     app não contam no funil: navegador automatizado ou robô conhecido fica de fora, e a capa só
+     entra quando alguém toca/digita na página ou ela fica 4 s visível na tela. */
+  var ROBO = !!navigator.webdriver || /bot|crawler|spider|crawling|headless|lighthouse|facebookexternalhit|facebot|meta-externalagent|meta-externalfetcher|preview|prerender/i.test(navigator.userAgent || '');
+  var HUMANO = false;
+  function esperaHumano(step) {
+    if (ROBO || PREVIEW || HUMANO) { if (HUMANO) beacon(step); return; }
+    var t = null, evs = ['pointerdown', 'touchstart', 'keydown', 'wheel'];
+    function vira() { if (HUMANO) return; HUMANO = true; limpa(); beacon(step); }
+    function agenda() { clearTimeout(t); if (document.visibilityState === 'visible' && !document.prerendering) t = setTimeout(vira, 4000); }
+    function onVis() { if (document.visibilityState === 'visible') agenda(); else clearTimeout(t); }
+    function limpa() { clearTimeout(t); evs.forEach(function (e) { window.removeEventListener(e, vira, true); }); document.removeEventListener('visibilitychange', onVis); }
+    evs.forEach(function (e) { window.addEventListener(e, vira, { capture: true, passive: true }); });
+    document.addEventListener('visibilitychange', onVis);
+    agenda();
+  }
   function enviaPassos() {
     if (PREVIEW || PASSOS.length === ENVIADOS) return;
     ENVIADOS = PASSOS.length;
@@ -136,7 +152,7 @@
     try { fetch('/api/event', { method: 'POST', body: body, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(function () { }); } catch (e) { }
   }
   function beacon(step, urgente) {
-    if (PREVIEW) return;
+    if (PREVIEW || ROBO) return;
     if (PASSOS.indexOf(step) < 0) PASSOS.push(step);
     if (urgente || PASSOS.length === 1 || PASSOS.length - ENVIADOS >= 6) enviaPassos();
   }
@@ -144,7 +160,7 @@
   window.addEventListener('pagehide', enviaPassos);
   function track(step, idx) {
     dl({ event: 'quiz_step', quiz_id: QUIZ_ID, quiz_step: step, quiz_step_index: idx });
-    beacon(step);
+    if (idx === 0) esperaHumano(step); else beacon(step);
   }
   /* reserva: o Worker já põe o GTM/UTMify no HTML (window.__lckTrk). Isto só roda se a página
      vier sem ele, e nunca no localhost (a não ser com ?gtm=1), pra teste não ir pro Pixel. */
