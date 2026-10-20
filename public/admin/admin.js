@@ -158,23 +158,26 @@
   function typeOf(n) { return n.kind === 'screen' ? TYPES[n.s.type] || TYPES.single : TYPES[n.kind]; }
 
   var NW = 228, NH = 120, GX = 60, GY = 70, COLS = 5, PH = 78, PG = 14;
-  function layout() {
+  /* order: ordem das telas a desenhar (padrão D.screens; durante o arrasta-e-solta é a ordem provisória) */
+  function layout(order) {
+    order = order || D.screens;
     var pos = {};
-    D.screens.forEach(function (s, i) {
+    order.forEach(function (s, i) {
       var r = Math.floor(i / COLS), c = i % COLS;
       pos['s:' + s.id] = { x: c * (NW + GX), y: r * (NH + GY), w: NW, h: NH };
     });
-    var by = (Math.floor((D.screens.length - 1) / COLS) + 1) * (NH + GY) + 10;
+    var by = (Math.floor((order.length - 1) / COLS) + 1) * (NH + GY) + 10;
     pos.rules = { x: 0, y: by + PH + PG - (NH - PH) / 2, w: NW, h: NH };
     ['R1', 'R2', 'R3'].forEach(function (k, j) { pos['p:' + k] = { x: NW + GX, y: by + j * (PH + PG), w: NW, h: PH }; });
     pos.result = { x: 2 * (NW + GX), y: pos.rules.y, w: NW, h: NH };
     pos.offer = { x: 3 * (NW + GX), y: pos.rules.y, w: NW, h: NH };
     return pos;
   }
-  function edges() {
+  function edges(order) {
+    order = order || D.screens;
     var e = [];
-    for (var i = 0; i < D.screens.length - 1; i++) e.push(['s:' + D.screens[i].id, 's:' + D.screens[i + 1].id]);
-    e.push(['s:' + D.screens[D.screens.length - 1].id, 'rules']);
+    for (var i = 0; i < order.length - 1; i++) e.push(['s:' + order[i].id, 's:' + order[i + 1].id]);
+    e.push(['s:' + order[order.length - 1].id, 'rules']);
     ['R1', 'R2', 'R3'].forEach(function (k) { e.push(['rules', 'p:' + k, 1]); e.push(['p:' + k, 'result', 1]); });
     e.push(['result', 'offer']);
     return e;
@@ -221,20 +224,26 @@
       if (usesVars(s).length) tags += '<span class="tag var">{{' + usesVars(s)[0] + '}}</span>';
       if (s.options) tags += '<span class="tag">' + s.options.length + ' opções</span>';
     }
-    return '<div class="node' + (sel === n.key ? ' sel' : '') + '" data-key="' + esc(n.key) + '" style="left:' + p.x + 'px;top:' + p.y + 'px;width:' + p.w + 'px;height:' + p.h + 'px;--c:' + t.color + '">' +
+    var arrasta = n.kind === 'screen' && movable(n.s) ? ' data-drag="1" title="Arraste pra mudar a ordem"' : '';
+    return '<div class="node' + (sel === n.key ? ' sel' : '') + '" data-key="' + esc(n.key) + '"' + arrasta + ' style="left:' + p.x + 'px;top:' + p.y + 'px;width:' + p.w + 'px;height:' + p.h + 'px;--c:' + t.color + '">' +
       '<div class="n-top"><span class="n-num">' + esc(num) + '</span><span class="n-type">' + t.icon + ' ' + esc(t.label) + '</span>' + (n.kind === 'screen' && n.s.locked ? '<span class="n-lock">🔒</span>' : '') + '</div>' +
       '<div class="n-title">' + esc(nodeTitle(n)) + '</div>' +
       '<div class="n-foot">' + tags + metricFor(n) + '</div></div>';
   }
 
+  function drawEdges(order, pos) {
+    var maxX = 0, maxY = 0;
+    Object.keys(pos).forEach(function (k) { maxX = Math.max(maxX, pos[k].x + pos[k].w); maxY = Math.max(maxY, pos[k].y + pos[k].h); });
+    var svg = '<defs><marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B9AE9F"/></marker></defs>';
+    edges(order).forEach(function (e) { var a = pos[e[0]], b = pos[e[1]]; if (a && b) svg += '<path class="' + (e[2] ? 'branch' : '') + '" d="' + edgePath(a, b) + '" marker-end="url(#arw)"/>'; });
+    var edgesEl = $('#edges'); edgesEl.setAttribute('width', maxX + 40); edgesEl.setAttribute('height', maxY + 40); edgesEl.innerHTML = svg;
+  }
   function renderCanvas() {
     if (!D) return;
-    var pos = layout(), html = '', maxX = 0, maxY = 0;
-    nodes().forEach(function (n) { var p = pos[n.key]; html += nodeHtml(n, p); maxX = Math.max(maxX, p.x + p.w); maxY = Math.max(maxY, p.y + p.h); });
-    $('#nodes').innerHTML = html;
-    var svg = '<defs><marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B9AE9F"/></marker></defs>';
-    edges().forEach(function (e) { var a = pos[e[0]], b = pos[e[1]]; if (a && b) svg += '<path class="' + (e[2] ? 'branch' : '') + '" d="' + edgePath(a, b) + '" marker-end="url(#arw)"/>'; });
-    var edgesEl = $('#edges'); edgesEl.setAttribute('width', maxX + 40); edgesEl.setAttribute('height', maxY + 40); edgesEl.innerHTML = svg;
+    var pos = layout(), html = '';
+    nodes().forEach(function (n) { html += nodeHtml(n, pos[n.key]); });
+    $('#nodes').innerHTML = html + '<div class="drop-ph" id="drop-ph" hidden></div>';
+    drawEdges(D.screens, pos);
     applyView();
     renderWarnings();
   }
@@ -262,24 +271,155 @@
     view.k = Math.min(1.1, Math.max(0.3, Math.min((c.width - 50) / maxX, (c.height - 90) / maxY)));
     view.x = 24; view.y = 20; applyView();
   }
-  (function panZoom() {
-    var cv = $('#canvas'), drag = null, moved = false;
-    cv.addEventListener('mousedown', function (e) {
-      if (e.button !== 0) return;
-      drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, node: e.target.closest ? e.target.closest('.node') : null }; moved = false;
+  /* ================================================================ arrastar e soltar
+     - fundo do canvas: move a visão
+     - tela: muda a ordem (as outras abrem espaço; soltar na lixeira exclui)
+     - bloco da paleta: cria tela nova onde soltar (clique simples cria depois da selecionada)
+     Capa e carregamento ficam fixos no começo e no fim. Esc cancela. */
+  function movable(s) { return !!s && s.type !== 'cover' && s.type !== 'loading'; }
+  function toWorld(cx, cy) {
+    var r = $('#canvas').getBoundingClientRect();
+    return { x: (cx - r.left - view.x) / view.k, y: (cy - r.top - view.y) / view.k, inside: cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom };
+  }
+  /* onde entra o item, na lista "rest" (as telas sem o item arrastado), pelo ponto do mundo:
+     linha pela altura, coluna por quantos centros de card ficaram à esquerda do ponteiro */
+  function slotIndex(rest, w) {
+    var row = Math.max(0, Math.floor(w.y / (NH + GY)));
+    var col = Math.max(0, Math.min(COLS, Math.floor((w.x - NW / 2) / (NW + GX)) + 1));
+    return Math.max(1, Math.min(rest.length - 1, row * COLS + col));
+  }
+  function reflow(order, phKey) {
+    var pos = layout(order), ph = $('#drop-ph');
+    $$('#nodes .node').forEach(function (el) {
+      if (el.classList.contains('dragging')) return;
+      var p = pos[el.dataset.key]; if (p) { el.style.left = p.x + 'px'; el.style.top = p.y + 'px'; }
     });
-    window.addEventListener('mousemove', function (e) {
-      if (!drag) return;
-      var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      if (Math.abs(dx) + Math.abs(dy) > 4) { moved = true; cv.classList.add('panning'); }
-      if (moved) { view.x = drag.vx + dx; view.y = drag.vy + dy; applyView(); }
+    var pp = phKey && pos[phKey];
+    if (pp) { ph.hidden = false; ph.style.cssText = 'left:' + pp.x + 'px;top:' + pp.y + 'px;width:' + pp.w + 'px;height:' + pp.h + 'px'; } else ph.hidden = true;
+    drawEdges(order, pos);
+  }
+  function askDelete(n) {
+    modal('<h3>Excluir a tela ' + (n.idx + 1) + '?</h3><p>' + esc(plain(n.s.title || n.s.quote)) + '</p><p>Isso só vale no rascunho até você publicar.</p><div class="modal-acts"><button class="b" data-close>Cancelar</button><button class="b b-pri" id="del-go" style="background:#C2413A;border-color:#C2413A">Excluir</button></div>');
+    $('#del-go').onclick = function () {
+      D.screens.splice(n.idx, 1); closeModal(); markDirty();
+      var nx = D.screens[Math.min(n.idx, D.screens.length - 1)]; renderCanvas(); select('s:' + nx.id);
+    };
+  }
+
+  (function dragDrop() {
+    var cv = $('#canvas'), trash = $('#trash'), g = null, autoRaf = 0;
+    $('#palette').innerHTML = '<span class="pal-hint">Arraste pro fluxo:</span>' + ['single', 'multi', 'statement', 'milestone', 'testimonial'].map(function (t) {
+      return '<button type="button" class="pal-item" data-type="' + t + '" style="--c:' + TYPES[t].color + '" title="Arraste pro ponto do fluxo onde a tela deve entrar, ou clique pra criar logo depois da tela selecionada">' + TYPES[t].icon + ' ' + TYPES[t].label + '</button>';
+    }).join('') + '<span class="pal-hint pal-tip">Arraste as telas pra mudar a ordem · solte na lixeira pra excluir</span>';
+
+    function overTrash(e) { var r = trash.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; }
+    function begin(e) {
+      g.started = true; document.body.classList.add('dragging-any');
+      if (g.kind === 'pan') { cv.classList.add('panning'); return; }
+      $('#world').classList.add('reflow');
+      if (g.kind === 'move') {
+        g.el.classList.add('dragging');
+        g.rest = D.screens.filter(function (s) { return s !== g.item; });
+        trash.classList.add('show'); trash.classList.toggle('no', !!g.item.locked);
+        trash.textContent = g.item.locked ? '🔒 Essa tela entra nas regras e não pode ser excluída' : '🗑 Solte aqui pra excluir';
+      } else {
+        g.rest = D.screens.slice();
+        g.ghost = document.createElement('div'); g.ghost.className = 'drag-ghost'; g.ghost.style.setProperty('--c', TYPES[g.type].color);
+        g.ghost.textContent = TYPES[g.type].icon + ' ' + TYPES[g.type].label; document.body.appendChild(g.ghost);
+      }
+    }
+    function track(e) {
+      var w = toWorld(e.clientX, e.clientY);
+      if (g.kind === 'move') {
+        g.el.style.left = (w.x - g.dx) + 'px'; g.el.style.top = (w.y - g.dy) + 'px';
+        var lixo = overTrash(e); trash.classList.toggle('over', lixo);
+        var t = slotIndex(g.rest, w);
+        if (t !== g.t) { g.t = t; g.order = g.rest.slice(); g.order.splice(t, 0, g.item); reflow(g.order, g.key); }
+      } else {
+        g.ghost.style.left = e.clientX + 'px'; g.ghost.style.top = e.clientY + 'px';
+        if (w.inside) {
+          var t2 = slotIndex(g.rest, w);
+          if (t2 !== g.t) { g.t = t2; g.order = g.rest.slice(); g.order.splice(t2, 0, { id: '__novo', type: g.type }); reflow(g.order, 's:__novo'); }
+        } else if (g.t != null) { g.t = null; g.order = null; reflow(D.screens, null); }
+      }
+    }
+    /* perto da borda do canvas a visão rola sozinha, pra dar pra arrastar até telas fora da tela */
+    function autoPan() {
+      if (!g || !g.started || g.kind === 'pan' || !g.last) return;
+      var r = cv.getBoundingClientRect(), m = 50, sp = 14, vx = 0, vy = 0, e = g.last;
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        if (e.clientX < r.left + m) vx = sp; else if (e.clientX > r.right - m) vx = -sp;
+        if (e.clientY < r.top + m) vy = sp; else if (e.clientY > r.bottom - m) vy = -sp;
+      }
+      if (vx || vy) { view.x += vx; view.y += vy; applyView(); track(e); }
+      autoRaf = requestAnimationFrame(autoPan);
+    }
+    function finish(cancel) {
+      cancelAnimationFrame(autoRaf);
+      document.body.classList.remove('dragging-any'); cv.classList.remove('panning'); $('#world').classList.remove('reflow');
+      trash.classList.remove('show', 'over', 'no');
+      var s = g; g = null;
+      if (s.ghost) s.ghost.remove();
+      if (!s.started) { if (s.kind === 'move' || s.kind === 'click') select(s.key); else if (s.kind === 'new') addAfterSelected(s.type); return; }
+      if (s.kind === 'pan') return;
+      if (cancel) { renderCanvas(); return; }
+      if (s.kind === 'move') {
+        if (s.dropTrash) {
+          renderCanvas();
+          if (s.item.locked) toast('Essa tela entra nas regras ou nos cálculos e não pode ser excluída.', true);
+          else askDelete(nodeByKey(s.key));
+          return;
+        }
+        var antes = D.screens.indexOf(s.item);
+        if (s.order && s.order.indexOf(s.item) !== antes) { D.screens = s.order; markDirty(); }
+        renderCanvas(); select(s.key);
+      } else {
+        if (s.order) {
+          var nova = TEMPLATES[s.type]();
+          D.screens.splice(s.t, 0, nova); markDirty(); renderCanvas(); select('s:' + nova.id);
+          toast('Tela nova criada. Edite o texto ao lado.');
+        } else renderCanvas();
+      }
+    }
+
+    cv.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || g) return;
+      var el = e.target.closest ? e.target.closest('.node') : null;
+      if (el && el.dataset.drag) {
+        var p = toWorld(e.clientX, e.clientY), n = nodeByKey(el.dataset.key);
+        g = { kind: 'move', key: el.dataset.key, el: el, item: n.s, dx: p.x - parseFloat(el.style.left), dy: p.y - parseFloat(el.style.top), sx: e.clientX, sy: e.clientY, t: D.screens.indexOf(n.s) };
+      } else if (el) {
+        g = { kind: 'click', key: el.dataset.key, sx: e.clientX, sy: e.clientY };
+      } else {
+        g = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y };
+      }
     });
-    window.addEventListener('mouseup', function (e) {
-      if (!drag) return;
-      cv.classList.remove('panning');
-      if (!moved && drag.node) select(drag.node.dataset.key);
-      drag = null;
+    $('#palette').addEventListener('pointerdown', function (e) {
+      var it = e.target.closest('.pal-item'); if (!it || e.button !== 0 || g) return;
+      e.preventDefault();
+      g = { kind: 'new', type: it.dataset.type, sx: e.clientX, sy: e.clientY, t: null };
     });
+    window.addEventListener('pointermove', function (e) {
+      if (!g) return;
+      var dx = e.clientX - g.sx, dy = e.clientY - g.sy;
+      if (!g.started) {
+        if (Math.abs(dx) + Math.abs(dy) < 5) return;
+        if (g.kind === 'click') { g.kind = 'pan'; g.vx = view.x; g.vy = view.y; }
+        begin(e); if (g.kind !== 'pan') { autoRaf = requestAnimationFrame(autoPan); }
+      }
+      g.last = e;
+      if (g.kind === 'pan') { view.x = g.vx + dx; view.y = g.vy + dy; applyView(); return; }
+      track(e);
+    });
+    window.addEventListener('pointerup', function (e) {
+      if (!g) return;
+      if (g.kind === 'move' && g.started) g.dropTrash = overTrash(e);
+      if (g.kind === 'new' && g.started && !toWorld(e.clientX, e.clientY).inside) g.order = null;
+      finish(false);
+    });
+    window.addEventListener('pointercancel', function () { if (g) finish(true); });
+    window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && g && g.started) finish(true); });
+
     cv.addEventListener('wheel', function (e) {
       e.preventDefault();
       var r = cv.getBoundingClientRect();
@@ -376,11 +516,16 @@
   }
   function delScreen() {
     var n = nodeByKey(sel); if (!n || n.kind !== 'screen' || n.s.locked) return;
-    modal('<h3>Excluir a tela ' + (n.idx + 1) + '?</h3><p>' + esc(plain(n.s.title || n.s.quote)) + '</p><p>Isso só vale no rascunho até você publicar.</p><div class="modal-acts"><button class="b" data-close>Cancelar</button><button class="b b-pri" id="del-go" style="background:#C2413A;border-color:#C2413A">Excluir</button></div>');
-    $('#del-go').onclick = function () {
-      D.screens.splice(n.idx, 1); closeModal(); markDirty();
-      var nx = D.screens[Math.min(n.idx, D.screens.length - 1)]; renderCanvas(); select('s:' + nx.id);
-    };
+    askDelete(n);
+  }
+  /* clique simples num bloco da paleta: cria a tela logo depois da selecionada */
+  function addAfterSelected(type) {
+    var n = nodeByKey(sel);
+    var at = n && n.kind === 'screen' ? n.idx + 1 : D.screens.length - 1;
+    at = Math.max(1, Math.min(at, D.screens.length - 1));
+    var s = TEMPLATES[type]();
+    D.screens.splice(at, 0, s); markDirty(); renderCanvas(); select('s:' + s.id);
+    toast('Tela nova criada depois da selecionada. Dá pra arrastar pra outro lugar.');
   }
   function moveScreen(dir) {
     var n = nodeByKey(sel); if (!n || n.kind !== 'screen') return;
