@@ -900,7 +900,9 @@
   }
   function renderFunnel(d) {
     var rows = D.screens.map(function (s, i) { return { id: s.id, label: (i + 1) + '. ' + plain(s.title || s.quote || s.id) }; });
-    rows.push({ id: 'resultado', label: 'Resultado + oferta' }, { id: 'checkout_click', label: 'Clicou em comprar' });
+    var vd = (d.vendas || {}).n || 0, receita = (d.vendas || {}).valor || 0;
+    funnel.__vendas = vd;
+    rows.push({ id: 'resultado', label: 'Resultado + oferta' }, { id: 'checkout_click', label: 'Clicou em comprar' }, { id: '__vendas', label: 'Venda (Eduzz, campanhas do quiz)' });
     var base = funnel.capa || 0, prev = null, drops = [];
     rows.forEach(function (r) { r.n = funnel[r.id] || 0; r.pct = base ? r.n / base * 100 : 0; r.drop = prev != null && prev > 0 ? (prev - r.n) / prev * 100 : 0; prev = r.n; drops.push(r.drop); });
     var top = drops.slice().sort(function (a, b) { return b - a; }).slice(0, 3).filter(function (x) { return x > 0; });
@@ -916,10 +918,12 @@
       kpi('Viram o resultado', res, taxa(res, d.leads) + ' dos leads') +
       kpi('Tocaram na notificação', nt + ' de ' + nv, taxa(nt, nv) + ' de quem viu') +
       kpi('Clicaram em comprar', ck, taxa(ck, res) + ' de quem viu o resultado') +
+      kpi('Vendas', vd, 'R$' + receita.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' · ' + taxa(vd, ck) + ' de quem clicou') +
       kpi('PageView → início', taxa(comecaram, base), 'força da capa') +
       kpi('Início → lead', taxa(d.leads, comecaram), 'força do quiz') +
       kpi('PageView → lead', taxa(d.leads, base), 'conversão da página em lead') +
-      kpi('PageView → clique em comprar', taxa(ck, base), 'do total que viu a capa');
+      kpi('PageView → clique em comprar', taxa(ck, base), 'do total que viu a capa') +
+      kpi('PageView → venda', taxa(vd, base), 'taxa de conversão da venda');
     if (!base) { $('#funil').innerHTML = '<div class="empty">Ainda não tem visita nesse período.</div>'; return; }
     $('#funil').innerHTML = '<div class="fr head"><span></span><span>Tela</span><span></span><span class="n">Sessões</span><span class="pc">% início</span><span class="drop">Queda</span></div>' +
       rows.map(function (r, i) {

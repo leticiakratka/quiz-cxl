@@ -14,6 +14,10 @@
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash"
   },
+  // KV do worker lck-tracking-meta-capi (só leitura aqui): lista de vendas da Eduzz pro funil
+  "kv_namespaces": [
+    { "binding": "TRACKING", "id": "2cc09a455ff84ca087c4c4016b7bb667" }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

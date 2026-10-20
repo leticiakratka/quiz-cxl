@@ -19,7 +19,7 @@
  *   POST /api/admin/restore?id=N      volta uma publicação antiga pro rascunho
  *   GET  /api/admin/leads?q=&page=&from=&to=   lista de leads (período em ISO, to exclusivo)
  *   GET  /api/admin/leads.csv?q=&from=&to=     exportação (mesmo filtro da tela)
- *   GET  /api/admin/funnel?from=&to= (ou days=30)  sessões que chegaram em cada tela
+ *   GET  /api/admin/funnel?from=&to= (ou days=30)  sessões que chegaram em cada tela + vendas do quiz (KV da CAPI)
  *
  * O resto é arquivo estático da pasta public/ (quiz em /, painel em /admin/).
  * As tabelas se criam sozinhas no primeiro acesso (schema.sql tem o mesmo SQL).
@@ -190,6 +190,28 @@ function filtroLeads(url) {
    ou pré-carregamento do Meta (502 de 521 nas primeiras horas de anúncio). Fica no banco, só não conta. */
 const ROBO_UA = /bot|crawler|spider|crawling|headless|lighthouse|facebookexternalhit|facebot|meta-externalagent|meta-externalfetcher|preview|prerender/i;
 const CORTE_ROBO = '2026-10-20T18:04:10.000Z';
+
+/* vendas: lidas (só leitura) da lista que o worker lck-tracking-meta-capi grava na KV TRACKING a
+   cada venda da Eduzz. Conta como venda do quiz a que tem "QUIZ" no nome da campanha, a partir de
+   20/10/2026 (antes disso [QUIZ] era o quiz antigo do xQuiz). Mesma invoice reenviada conta uma vez. */
+const QUIZ_DESDE = '2026-10-20T03:00:00.000Z';
+async function vendasDoQuiz(env, desde, ate) {
+  if (!env.TRACKING) return { n: 0, valor: 0 };
+  let lista = [];
+  try { lista = JSON.parse((await env.TRACKING.get('eventos_eduzz')) || '[]'); } catch (e) { return { n: 0, valor: 0, erro: true }; }
+  const ini = desde > QUIZ_DESDE ? desde : QUIZ_DESDE, vistas = new Set();
+  let n = 0, valor = 0;
+  for (const it of lista) {
+    if (!it || it.ignorado) continue;
+    const quando = it.montado_em || '';
+    if (quando < ini || quando >= ate || !/quiz/i.test((it.utms && it.utms.campaign) || '')) continue;
+    const id = it.invoice_id || it.transaction_id || quando;
+    if (vistas.has(id)) continue;
+    vistas.add(id); n++;
+    valor += Number(it.evento && it.evento.custom_data && it.evento.custom_data.value) || 0;
+  }
+  return { n, valor: Math.round(valor * 100) / 100 };
+}
 
 function csvCampo(v) {
   const s = v == null ? '' : String(v);
@@ -368,7 +390,8 @@ export default {
              ) GROUP BY step`
           ).bind(desde, ate, CORTE_ROBO).all();
           const leads = await env.DB.prepare('SELECT COUNT(*) AS n FROM leads WHERE created_at >= ?1 AND created_at < ?2').bind(desde, ate).first();
-          return json({ days: dias, steps: results, leads: leads.n });
+          const vendas = await vendasDoQuiz(env, desde, ate);
+          return json({ days: dias, steps: results, leads: leads.n, vendas });
         }
 
         return json({ erro: 'rota não encontrada' }, 404);

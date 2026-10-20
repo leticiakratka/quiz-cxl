@@ -247,4 +247,4 @@ body.dragging-any, body.dragging-any * { cursor: grabbing !important; user-selec
 .df-custom[hidden] { display: none; }
 .datef input[type=date] { width: auto; }
 .kpi small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
-@media (min-width: 1100px) { #funil-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { #funil-kpis { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
