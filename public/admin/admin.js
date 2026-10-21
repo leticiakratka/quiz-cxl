@@ -44,7 +44,7 @@
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
   function setPath(o, p, v) { var ks = p.split('.'); var a = o; for (var i = 0; i < ks.length - 1; i++) a = a[ks[i]]; a[ks[ks.length - 1]] = v; }
-  function plain(s) { return String(s || '').replace(/\*\*/g, '').replace(/\{\{\s*(\w+)\s*\}\}/g, '[$1]'); }
+  function plain(s) { return String(s || '').replace(/\*\*|~~/g, '').replace(/\{\{\s*(\w+)\s*\}\}/g, '[$1]'); }
   function fmtDate(iso) { if (!iso) return '—'; var d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
 
   /* ================================================================ api */
@@ -462,8 +462,11 @@
     if (D.meta.webhookAtivo && !/^https:\/\//.test(D.meta.webhookUrl || '')) w.push('O envio pro CRM está marcado, mas o endereço do webhook está vazio ou sem https (aba Configurações).');
     /* regra do funil: o nome do produto só aparece na oferta */
     D.screens.forEach(function (s, i) { if (/caixa\s*livre/i.test(JSON.stringify(s))) w.push('Tela ' + (i + 1) + ' cita "Caixa Livre". O nome do produto só pode aparecer na oferta.'); });
-    ['R1', 'R2', 'R3'].forEach(function (k) { if (/caixa\s*livre/i.test(JSON.stringify(D.profiles[k] || {}))) w.push('Perfil ' + k + ' cita "Caixa Livre" (aparece antes da oferta).'); });
-    var semNotif = Object.assign({}, D.result || {}); delete semNotif.notify;
+    ['R1', 'R2', 'R3'].forEach(function (k) {
+      var semPonte = Object.assign({}, D.profiles[k] || {}); delete semPonte.bridge; /* a ponte já abre a oferta */
+      if (/caixa\s*livre/i.test(JSON.stringify(semPonte))) w.push('Perfil ' + k + ' cita "Caixa Livre" (aparece antes da oferta).');
+    });
+    var semNotif = Object.assign({}, D.result || {}); delete semNotif.notify; delete semNotif.mechCta; /* o botão do meio já é compra */
     if (/caixa\s*livre/i.test(JSON.stringify(semNotif))) w.push('A tela de resultado cita "Caixa Livre" antes da oferta.');
     if (D.screens.some(function (s) { return s.type === 'testimonial' && /andressa\.webp|eloisa\.webp|endine/.test(s.image || ''); })) w.push('Um depoimento do meio do fluxo usa print que mostra o nome do produto. Use as versões "-quiz".');
     return w;
@@ -658,23 +661,38 @@
   }
   function profileEditor(k) {
     var p = 'profiles.' + k + '.';
-    return fText('Nome do perfil', p + 'name', { area: true, rows: 2, vars: true }) + fText('Frase de apoio', p + 'support', { area: true, rows: 3, vars: true }) +
+    return fText('Nome do perfil', p + 'name', { area: true, rows: 2, vars: true }) +
+      fText('Diagnóstico (card abaixo do perfil)', p + 'diagnosis', { area: true, rows: 7, vars: true, hint: 'Use **texto** pra negrito. Se ficar vazio, aparece a frase de apoio.' }) +
+      fText('Frase de apoio', p + 'support', { area: true, rows: 3, vars: true, hint: 'Só aparece quando o diagnóstico está vazio.' }) +
+      '<div class="ed-sec"><h4>O seu caminho (etapas desse perfil)</h4>' +
+      ((D.profiles[k] || {}).path || []).map(function (e, j) {
+        var q = p + 'path.' + j + '.';
+        return '<div class="blk-card"><div class="bh"><b>Etapa ' + (j + 1) + '</b><div class="acts"><button class="ib" data-act="list-up" data-path="' + p + 'path" data-i="' + j + '" title="Subir">↑</button><button class="ib del" data-act="list-del" data-path="' + p + 'path" data-i="' + j + '" title="Remover">✕</button></div></div>' +
+          fText('Título', q + 'title') + fText('Texto', q + 'text', { area: true, rows: 2, vars: true }) + '</div>';
+      }).join('') +
+      '<button class="add" data-act="list-add" data-path="' + p + 'path" data-tpl=\'{"title":"","text":""}\'>+ etapa</button></div>' +
+      fText('Frase de ponte (abre a oferta)', p + 'bridge', { area: true, rows: 2, vars: true, hint: 'Aparece em destaque logo acima de "A solução:". Pode citar o nome do produto.' }) +
       '<div class="ed-sec"><h4>Depoimento desse perfil</h4>' + fText('Nome', p + 'testimonialName') + fText('Texto', p + 'testimonialText', { area: true, rows: 3 }) + fImage('Print', p + 'testimonialImage') + '</div>';
   }
   function resultEditor() {
     var r = 'result.';
-    var h = '<div class="ed-note">Ordem da tela: título e perfil → card de números → "o que está entre você e esse número" → mecanismo → futuro → depoimentos (carrossel) → pensa comigo → oferta.</div>';
+    var h = '<div class="ed-note">Ordem da tela: título, perfil e diagnóstico → card de números → por que hoje não sobra → por onde você começa → o seu caminho → futuro → depoimentos (carrossel) → pensa comigo → frase de ponte → oferta. Diagnóstico, caminho e ponte são editados em cada perfil (R1, R2, R3).</div>';
     h += '<div class="ed-sec"><h4>Topo</h4>' + fText('Título', r + 'title', { vars: true }) + fText('Rótulo do perfil', r + 'profileLabel') + '</div>';
     h += '<div class="ed-sec"><h4>Card de números</h4>' + fText('Linha 1', r + 'labelPassou') + fText('Linha 2', r + 'labelSobra') + fText('Linha 3', r + 'labelMeta') + fText('Destaque', r + 'labelGapAno') + fText('Destaque quando já guarda 30%', r + 'gapZero') + fText('Texto pequeno', r + 'disclaimer', { area: true, rows: 2 }) +
       Object.keys(D.result.sobraDisplay || {}).map(function (k) { return fText('Sobra exibida · ' + k, r + 'sobraDisplay.' + k); }).join('') + '</div>';
-    h += '<div class="ed-sec"><h4>O que está entre você e esse número</h4>' + fText('Subtítulo', r + 'betweenTitle') +
+    h += '<div class="ed-sec"><h4>Por que hoje não sobra</h4>' + fText('Subtítulo', r + 'betweenTitle') +
       fText('Frase 1 · marcou onde o dinheiro escapa', r + 'sentenceRalos', { area: true, vars: true }) + fText('Frase 1 · marcou "não sei"', r + 'sentenceRalosNaoSei', { area: true }) +
-      fText('Frase 2 · tem dívida rolando', r + 'sentenceDivida', { area: true }) +
+      fText('Frase 2 · tem dívida rolando', r + 'sentenceDivida', { area: true, hint: 'Quem rola dívida vê esta frase e também a da fatura.' }) +
       Object.keys(D.result.sentenceFatura || {}).map(function (k) { return fText('Frase 2 · fatura = ' + k, r + 'sentenceFatura.' + k, { area: true }); }).join('') +
       fText('Frase 3 · sem reserva', r + 'sentenceReservaSem', { area: true }) + fText('Frase 3 · com reserva', r + 'sentenceReservaCom', { area: true }) +
       fText('Frase final', r + 'absolution', { area: true }) + '</div>';
-    h += '<div class="ed-sec"><h4>Mecanismo</h4>' + fText('Título', r + 'mechanismTitle') + fText('Introdução', r + 'mechanismIntro') +
+    h += '<div class="ed-sec"><h4>Por onde você começa (mecanismo)</h4>' + fText('Título', r + 'mechanismTitle') + fText('Introdução', r + 'mechanismIntro') +
+      '<div class="blk-card"><div class="bh"><b>Card de compra logo abaixo da introdução</b></div><div class="ed-note">Mesmo formato do card de preço da oferta. Deixe título, preço e botão vazios pra esconder.</div>' +
+      fText('Título', r + 'mechCta.title') + fText('Linha acima do preço', r + 'mechCta.from', { hint: 'Use ~~texto~~ pra riscado, ex.: de ~~R$147~~ por' }) +
+      fText('Preço em destaque', r + 'mechCta.price') + fText('Texto do botão', r + 'mechCta.button', { ph: 'igual ao botão da oferta' }) +
+      fText('Linha embaixo do botão', r + 'mechCta.note', { ph: 'igual à garantia da oferta' }) + '</div>' +
       (D.result.mechanism || []).map(function (m, j) { return '<div class="blk-card">' + fText('Ícone', r + 'mechanism.' + j + '.icon') + fText('Título', r + 'mechanism.' + j + '.title') + fText('Texto', r + 'mechanism.' + j + '.text', { area: true, rows: 2 }) + '</div>'; }).join('') + '</div>';
+    h += '<div class="ed-sec"><h4>O seu caminho</h4>' + fText('Título', r + 'pathTitle', { vars: true, hint: 'As etapas de cada perfil ficam nos blocos R1, R2 e R3.' }) + '</div>';
     h += '<div class="ed-sec"><h4>Futuro</h4>' + fText('Texto', r + 'future', { area: true, vars: true }) + fText('Se não marcar conquista', r + 'futureConquistaDefault') + fText('Se não marcar sentimento', r + 'futureSentirDefault') + '</div>';
     h += '<div class="ed-sec"><h4>Depoimentos (carrossel)</h4><div class="ed-note">O primeiro card é o depoimento do perfil da pessoa. Depois vêm os dos outros dois perfis (edite nos blocos R1, R2 e R3) e por último estes. A pessoa arrasta pro lado.</div>' +
       fText('Título acima do carrossel', r + 'testimonialsTitle', { ph: 'opcional' }) +
@@ -690,7 +708,7 @@
       fText('Nome do app', r + 'notify.app') + fText('Horário', r + 'notify.time') + fText('Título', r + 'notify.title', { ph: 'opcional' }) +
       fText('Mensagem', r + 'notify.text', { area: true, rows: 2, vars: true }) +
       fText('Aparece depois de (segundos)', r + 'notify.delay', { num: true }) + fText('Some sozinha depois de (segundos)', r + 'notify.seconds', { num: true }) + '</div>';
-    h += '<div class="ed-sec"><h4>Pensa comigo</h4>' + fText('Título', r + 'roiTitle') + fText('Texto da diferença', r + 'roiGap', { area: true, vars: true, hint: 'Aparece quando a diferença por mês é maior que zero.' }) + fText('Texto do delivery', r + 'roiDelivery', { area: true, hint: 'Aparece quando a pessoa gasta R$300 ou mais com delivery e apps.' }) + '</div>';
+    h += '<div class="ed-sec"><h4>Pensa comigo</h4>' + fText('Título', r + 'roiTitle') + fText('Texto da diferença', r + 'roiGap', { area: true, vars: true, hint: 'Aparece quando a diferença por mês é maior que zero.' }) + fText('Texto da dívida', r + 'roiDivida', { area: true, hint: 'Aparece pra quem rola cartão ou cheque especial (no lugar do texto do delivery).' }) + fText('Texto do delivery', r + 'roiDelivery', { area: true, hint: 'Aparece quando a pessoa gasta R$300 ou mais com delivery e apps (sem contar o cartão).' }) + '</div>';
     return h;
   }
   var BLOCK_TYPES = { text: 'Texto', image: 'Imagem', testimonials: 'Carrossel de prints', list: 'Lista antes/depois', guarantee: 'Garantia', about: 'Sobre (foto + texto)', faq: 'Perguntas frequentes', cta: 'Botão de compra' };

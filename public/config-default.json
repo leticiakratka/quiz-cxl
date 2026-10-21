@@ -31,6 +31,24 @@
       "linkText": "Já fiz a análise"
     },
     {
+      "id": "sentimento_hoje",
+      "type": "single",
+      "title": "Como você se sente sobre o seu dinheiro hoje?",
+      "help": "",
+      "options": [
+        {
+          "code": "controle",
+          "emoji": "",
+          "label": "Tá tudo sob controle"
+        },
+        {
+          "code": "mudar",
+          "emoji": "",
+          "label": "Quero mudar, mas não sei por onde começar"
+        }
+      ]
+    },
+    {
       "id": "situacao",
       "type": "single",
       "title": "Qual frase mais parece com você?",
@@ -115,48 +133,6 @@
       "placeholder": "Digite seu nome",
       "small": "🔒 Suas respostas ficam só com a gente.",
       "button": "Continuar"
-    },
-    {
-      "id": "frase_1",
-      "type": "statement",
-      "quote": "Ganho e trabalho muito. Nunca sobra nada.",
-      "question": "Você concorda com essa frase?",
-      "answers": [
-        "SIM",
-        "NÃO",
-        "MAIS OU MENOS"
-      ],
-      "caption": "frase de uma aluna, antes de começar"
-    },
-    {
-      "id": "frase_2",
-      "type": "statement",
-      "quote": "Recebo o salário já pensando no próximo.",
-      "question": "Você concorda com essa frase?",
-      "answers": [
-        "SIM",
-        "NÃO",
-        "MAIS OU MENOS"
-      ],
-      "caption": ""
-    },
-    {
-      "id": "sentimento_hoje",
-      "type": "single",
-      "title": "Como você se sente sobre o seu dinheiro hoje?",
-      "help": "",
-      "options": [
-        {
-          "code": "controle",
-          "emoji": "",
-          "label": "Tá tudo sob controle"
-        },
-        {
-          "code": "mudar",
-          "emoji": "",
-          "label": "Quero mudar, mas não sei por onde começar"
-        }
-      ]
     },
     {
       "id": "sobra",
@@ -416,6 +392,18 @@
       "tip": "🙋‍♀️ Uma dica pra já: olha a fatura pela data de cada compra, e não só pelo total. O susto quase sempre vem de gasto pequeno que se repete várias vezes no mês."
     },
     {
+      "id": "frase_2",
+      "type": "statement",
+      "quote": "Recebo o salário já pensando no próximo.",
+      "question": "Você concorda com essa frase?",
+      "answers": [
+        "SIM",
+        "NÃO",
+        "MAIS OU MENOS"
+      ],
+      "caption": ""
+    },
+    {
       "id": "frase_4",
       "type": "statement",
       "quote": "Às vezes sinto que eu trabalho só pra pagar conta.",
@@ -426,6 +414,18 @@
         "MAIS OU MENOS"
       ],
       "caption": ""
+    },
+    {
+      "id": "frase_1",
+      "type": "statement",
+      "quote": "Ganho e trabalho muito. Nunca sobra nada.",
+      "question": "Você concorda com essa frase?",
+      "answers": [
+        "SIM",
+        "NÃO",
+        "MAIS OU MENOS"
+      ],
+      "caption": "frase de uma aluna, antes de começar"
     },
     {
       "id": "sentir",
@@ -746,21 +746,69 @@
       "support": "Você paga tudo em dia, não tem nenhuma loucura na fatura, e mesmo assim chega no fim do mês sem nada guardado.",
       "testimonialImage": "img/depoimentos/andressa-quiz.webp",
       "testimonialName": "Andressa",
-      "testimonialText": "R$2 mil economizados no primeiro mês. Antes de entrar ela escreveu: \"Ganho e trabalho muito. Nunca sobra nada.\""
+      "testimonialText": "R$2 mil economizados no primeiro mês. Antes de entrar ela escreveu: \"Ganho e trabalho muito. Nunca sobra nada.\"",
+      "diagnosis": "Seu perfil mostra que **o seu dinheiro escorre sem você ver**. Você paga as suas contas, mas o mês fecha no zero e não sobra nada pra guardar. A fatura virou o único lugar onde os seus gastos aparecem, então dá até vontade de nem olhar, e as parcelas vão ocupando o espaço que poderia ser a sua reserva. Isso acontece com quase todo mundo que nunca teve um lugar pra enxergar o mês inteiro. Com a renda que você tem hoje, **dá pra descobrir pra onde o dinheiro está indo e transformar o zero a zero em sobra todo mês**.",
+      "path": [
+        {
+          "title": "Achar os vazamentos",
+          "text": "Ver pra onde vai cada real e o que faz o mês zerar."
+        },
+        {
+          "title": "Montar a sua reserva",
+          "text": "O primeiro dinheiro que sobra vai pra ela, e um imprevisto não vai mais pro cartão."
+        },
+        {
+          "title": "Guardar até 30%",
+          "text": "Até R${{meta_30}} por mês, sem baixar o seu padrão de vida."
+        }
+      ],
+      "bridge": "O Caixa Livre é exatamente o que você precisa agora pra enxergar pra onde vai o seu dinheiro e transformar o zero a zero em sobra."
     },
     "R2": {
       "name": "O seu salário está pagando o mês passado",
       "support": "Você trabalha o mês inteiro, mas boa parte do que entra já chega comprometida com a fatura e as parcelas.",
       "testimonialImage": "img/depoimentos/eloisa-quiz.webp",
       "testimonialName": "Eloisa",
-      "testimonialText": "Ganhava entre R$8.500 e R$9.000, gastava 9 mil e pouco e não guardava nada. Num mês só, sobraram R$3 mil."
+      "testimonialText": "Ganhava entre R$8.500 e R$9.000, gastava 9 mil e pouco e não guardava nada. Num mês só, sobraram R$3 mil.",
+      "diagnosis": "Seu perfil mostra que **o seu salário chega já comprometido com o mês passado**. Você trabalha muito, mas uma parte do que entra vai direto pra fatura, pras parcelas e pros juros, e o mês fecha no zero ou faltando. Daí vem a sensação de **trabalhar só pra pagar conta**. Isso acontece porque você só enxerga os seus gastos quando a fatura fecha, e aí o dinheiro já foi. Com a renda que você tem hoje e um jeito de ver o mês antes da fatura chegar, **dá pra parar de faltar, montar a sua primeira reserva e começar a fazer sobrar já nos próximos meses**.",
+      "path": [
+        {
+          "title": "Parar de faltar",
+          "text": "Sair do cartão rolado e do cheque especial, que hoje levam parte do seu salário em juros."
+        },
+        {
+          "title": "Montar a sua reserva",
+          "text": "O primeiro dinheiro que sobra vai pra ela, e um imprevisto não vai mais pro cartão."
+        },
+        {
+          "title": "Guardar até 30%",
+          "text": "Até R${{meta_30}} por mês, sem baixar o seu padrão de vida."
+        }
+      ],
+      "bridge": "O Caixa Livre é exatamente o que você precisa agora pra parar de pagar o mês passado e começar a fazer sobrar."
     },
     "R3": {
       "name": "Você já guarda, mas paga caro por isso",
       "support": "Sobra alguma coisa no fim do mês, só que vem com corte, culpa e a sensação de estar sempre se privando.",
       "testimonialImage": "img/depoimentos/jhenifer.webp",
       "testimonialName": "Jhenifer",
-      "testimonialText": "De R$1 mil pra R$21 mil guardados, e hoje guarda 30% do que ganha. \"A planilha me ajudou bastante nessa visibilidade.\""
+      "testimonialText": "De R$1 mil pra R$21 mil guardados, e hoje guarda 30% do que ganha. \"A planilha me ajudou bastante nessa visibilidade.\"",
+      "diagnosis": "Seu perfil mostra que **você já guarda, mas paga caro por isso**. Sobra alguma coisa no fim do mês, só que vem com corte, culpa e a sensação de estar sempre se privando, e o que você guarda **não cresce no ritmo da sua renda**. Isso acontece quando guardar depende de força de vontade. Com um sistema que separa o que é pra gastar e o que é pra guardar, **dá pra chegar a até 30% do que você ganha sem precisar virar controladora de cada centavo**.",
+      "path": [
+        {
+          "title": "Organizar o que já sobra",
+          "text": "Separar o que é pra gastar do que é pra guardar, sem culpa."
+        },
+        {
+          "title": "Fazer a reserva crescer",
+          "text": "O que sobra passa a ter destino certo, e a reserva cresce todo mês."
+        },
+        {
+          "title": "Guardar até 30%",
+          "text": "Até R${{meta_30}} por mês, sem baixar o seu padrão de vida."
+        }
+      ],
+      "bridge": "O Caixa Livre é exatamente o que você precisa agora pra guardar mais sem viver se privando."
     }
   },
   "result": {
@@ -790,7 +838,7 @@
       "1500a3000": "cerca de R$2.250",
       "mais3000": "mais de R$3.000"
     },
-    "betweenTitle": "O que está entre você e esse número",
+    "betweenTitle": "Por que hoje não sobra",
     "sentenceRalos": "Você disse que o dinheiro escapa mais em {{ralos}}. É exatamente o tipo de gasto que passa batido quando você não tem tudo num lugar só.",
     "sentenceRalosNaoSei": "Você disse que o dinheiro simplesmente some. Isso é o sinal mais claro de que falta enxergar o mês inteiro num lugar só.",
     "sentenceDivida": "Parte do seu salário hoje vai pra juros, e esse é o primeiro dinheiro a recuperar.",
@@ -803,23 +851,23 @@
     "sentenceReservaSem": "Hoje você não tem reserva de verdade, então qualquer imprevisto acaba no cartão.",
     "sentenceReservaCom": "Você já tem uma reserva começando, e dá pra fazer ela crescer bem mais rápido.",
     "absolution": "Isso acontece com quase todo mundo que nunca teve um lugar pra enxergar o próprio dinheiro, e ninguém ensina isso, nem em casa, nem na escola.",
-    "mechanismTitle": "Uma planilha, uma IA e 30 minutos por semana.",
-    "mechanismIntro": "É assim que funciona o sistema que eu criei:",
+    "mechanismTitle": "Por onde você começa",
+    "mechanismIntro": "Uma planilha, uma IA e 30 minutos por semana.",
     "mechanism": [
       {
-        "icon": "⚡",
-        "title": "Automático",
-        "text": "você cola o extrato do banco e a planilha categoriza tudo sozinha, sem digitar gasto por gasto"
+        "icon": "📥",
+        "title": "No primeiro dia",
+        "text": "Você cola o extrato do banco e a planilha separa tudo sozinha, sem digitar gasto por gasto."
       },
       {
-        "icon": "✨",
-        "title": "Inteligente",
-        "text": "a Clara lê os seus números e aponta o que está errado e o que ajustar primeiro"
+        "icon": "🔎",
+        "title": "Na primeira semana",
+        "text": "A Clara, a IA treinada com o meu método, lê os seus números e te entrega o raio-x do mês: onde está vazando e o que ajustar primeiro."
       },
       {
         "icon": "⏱️",
-        "title": "Rápido",
-        "text": "em 30 minutos por semana você sabe exatamente quanto ainda dá pra gastar"
+        "title": "Toda semana",
+        "text": "30 minutos pra ver quanto ainda dá pra gastar e quanto já dá pra guardar."
       }
     ],
     "future": "Pensa em você daqui a alguns meses, {{nome}}, com dinheiro sobrando pra {{conquista}}, e se sentindo {{sentir}} toda vez que abre a conta.",
@@ -845,7 +893,16 @@
     ],
     "roiTitle": "Pensa comigo",
     "roiGap": "O sistema custa R$97. A diferença que a sua análise mostrou é de até R${{gap_mes}} por mês. Se você recuperar só uma parte pequena disso no primeiro mês, ele já se pagou.",
-    "roiDelivery": "E ele custa menos do que você gasta num mês só com {{gastos_lista}}."
+    "roiDelivery": "E ele custa menos do que você gasta num mês só com {{gastos_lista}}.",
+    "pathTitle": "O seu caminho",
+    "roiDivida": "E ele custa menos do que costuma custar um mês de juros do cartão rolado.",
+    "mechCta": {
+      "title": "Esse é o Método Caixa Livre",
+      "from": "de ~~R$147~~ por",
+      "price": "R$97",
+      "button": "QUERO ORGANIZAR MINHA VIDA FINANCEIRA",
+      "note": ""
+    }
   },
   "offer": {
     "kicker": "A solução:",
@@ -856,7 +913,7 @@
       "Mostra num lugar só pra onde vai cada real, porque você cola o extrato do banco e a planilha categoriza tudo sozinha",
       "Te diz quanto ainda dá pra gastar no mês e quanto dá pra guardar, em 30 minutos por semana",
       "Tem a Clara, uma IA treinada com o meu método, que olha os seus números e aponta onde está vazando",
-      "Te ajuda a guardar até 30% do que você ganha sem baixar o seu padrão de vida"
+      "Te leva do zero a zero até a sua reserva montada e, depois, a guardar até 30% do que você ganha, sem baixar o seu padrão de vida."
     ],
     "social": "Mais de 2.500 pessoas já usam o Caixa Livre, e a próxima pode ser você.",
     "bonusTitle": "🎁 Entrando agora você também leva:",
@@ -868,7 +925,7 @@
     "priceName": "Caixa Livre 2.0",
     "priceInstallments": "12x de R$10,03",
     "priceCash": "ou R$97 à vista",
-    "button": "QUERO FAZER SOBRAR",
+    "button": "QUERO ORGANIZAR MINHA VIDA FINANCEIRA",
     "guarantee": "🔒 7 dias de garantia. Se você não se adaptar, devolvo todo o seu dinheiro.",
     "extraBlocks": [
       {
@@ -876,12 +933,12 @@
         "tone": "ruim",
         "title": "VOCÊ SEM O MÉTODO CAIXA LIVRE",
         "items": [
-          "Sensação constante de que deveria estar guardando mais",
-          "Desorganização financeira que gera ansiedade",
-          "Frustração por não ver seu patrimônio crescer",
-          "Medo de imprevistos financeiros",
-          "Não sabe como equilibrar aproveitar a vida e poupar",
-          "Receio de não conseguir realizar seus sonhos financeiros"
+          "Trabalha o mês inteiro e sente que é só pra pagar conta",
+          "Fecha o mês no zero ou completa com cartão e cheque especial",
+          "Fica brava com você mesma quando a fatura chega",
+          "Não tem reserva, e qualquer imprevisto vai pro cartão",
+          "Paga juros todo mês sem saber quanto",
+          "Quer mudar, mas não sabe por onde começar"
         ]
       },
       {
@@ -889,13 +946,12 @@
         "tone": "boa",
         "title": "VOCÊ DEPOIS DE 30 DIAS COM O MÉTODO CAIXA LIVRE",
         "items": [
-          "Satisfação por finalmente ver seu dinheiro crescendo todo mês",
-          "Tem clareza e organização financeira sem complicações",
-          "Dorme tranquilo(a) sabendo que está construindo seu futuro",
-          "Tem segurança para lidar com qualquer imprevisto",
-          "Consegue aproveitar a vida hoje sem comprometer o amanhã",
-          "Tem um caminho claro para conquistar seus objetivos financeiros",
-          "Desenvolve uma relação saudável e próspera com o dinheiro"
+          "Sabe pra onde vai cada real que entra",
+          "Fecha o mês sabendo quanto vai sobrar",
+          "Abre a fatura sem susto, porque já acompanhou o mês",
+          "Sabe o que ajustar primeiro, sem cortar tudo que gosta",
+          "Já começou a sua reserva de emergência",
+          "Se sente segura e no controle, sem neura"
         ]
       },
       {
@@ -904,17 +960,17 @@
         "text": "1. Se em 7 dias você achar complicado demais, devolvo 100% do seu dinheiro.\n\n2. Se em 30 dias você não identificar pelo menos R$300 em gastos desnecessários, também devolvo seu investimento."
       },
       {
-        "type": "cta",
-        "title": "",
-        "text": "",
-        "button": ""
-      },
-      {
         "type": "about",
         "title": "Quem é a Letícia Kratka, criadora do Caixa Livre?",
         "image": "img/leticia-sobre.webp",
         "alt": "Letícia Kratka",
         "text": "Sou Letícia Kratka, consultora financeira especializada em equilibrar qualidade de vida e segurança financeira.\n\nJá sentei com mais de 500 pessoas para organizar a vida financeira de perto, uma a uma. E em quase todas elas o problema não era ganhar pouco, era não enxergar para onde o dinheiro ia. Quando essa parte se resolve, sobra dinheiro sem ninguém precisar cortar o que ama.\n\nEm 6 anos, foram mais de 200 famílias acompanhadas de perto, mais de R$ 10 milhões em evolução de patrimônio gerada pelos alunos e mais de 4.000 pessoas nos cursos online. Em 2025, fui escolhida entre os Top 50 Influenciadores Financeiros do Brasil pelo InfoMoney. Formada em Administração pela UnB."
+      },
+      {
+        "type": "cta",
+        "title": "",
+        "text": "",
+        "button": "QUERO ORGANIZAR MINHA VIDA FINANCEIRA"
       }
     ]
   }

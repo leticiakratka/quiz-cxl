@@ -51,16 +51,17 @@
     var gap = Math.max(0, meta - sobra);
     return { renda: renda, sobra: sobra, meta: meta, gap: gap, sobraCode: so ? so.code : '' };
   }
-  function phrases(id, max) {
+  function phrases(id, max, fora) {
     var sc = screenById(id), cs = code(id) || [];
     if (!sc) return [];
-    var out = sc.options.filter(function (o) { return cs.indexOf(o.code) >= 0 && o.phrase; }).map(function (o) { return o.phrase; });
+    var out = sc.options.filter(function (o) { return cs.indexOf(o.code) >= 0 && o.phrase && (!fora || fora.indexOf(o.code) < 0); }).map(function (o) { return o.phrase; });
     return max ? out.slice(0, max) : out;
   }
   /* {{gastos_lista}}: o que a pessoa marcou em "onde o dinheiro escapa" + app de transporte e assinaturas.
-     Sem repetir assinaturas se ela já marcou, e com texto padrão se marcou só "não sei". */
+     Sem o cartão (a fatura é o total do mês, a pessoa respondia o valor dela inteira), sem repetir
+     assinaturas se ela já marcou, e com texto padrão se não sobrar nada marcado. */
   function gastosLista() {
-    var marcados = phrases('ralos'), cs = code('ralos') || [];
+    var marcados = phrases('ralos', 0, ['cartao']), cs = code('ralos') || [];
     if (!marcados.length) return 'delivery, app de transporte e assinaturas';
     var itens = marcados.concat(['app de transporte']);
     if (cs.indexOf('assinaturas') < 0) itens.push('assinaturas');
@@ -81,12 +82,12 @@
       sentir: joinE(phrases('sentir', 2)) || R.futureSentirDefault || ''
     };
   }
-  /* texto do config -> html seguro: {{var}}, **negrito**, \n\n vira parágrafo */
+  /* texto do config -> html seguro: {{var}}, **negrito**, ~~riscado~~, \n\n vira parágrafo */
   function tpl(str, asParas) {
     if (!str) return '';
     var v = vars();
     var out = esc(str).replace(/\{\{\s*(\w+)\s*\}\}/g, function (m, key) { return v[key] != null ? esc(v[key]) : ''; });
-    out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/~~(.+?)~~/g, '<s>$1</s>');
     if (asParas) return '<p>' + out.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
     return out.replace(/\n/g, '<br>');
   }
@@ -491,7 +492,7 @@
     if (ralos.indexOf('naosei') >= 0) out.push(tpl(Rr.sentenceRalosNaoSei));
     else if (ralos.length) out.push(tpl(Rr.sentenceRalos));
     if (code('divida') === 'rolando') out.push(tpl(Rr.sentenceDivida));
-    else if (code('fatura') && (Rr.sentenceFatura || {})[code('fatura')]) out.push(tpl(Rr.sentenceFatura[code('fatura')]));
+    if (code('fatura') && (Rr.sentenceFatura || {})[code('fatura')]) out.push(tpl(Rr.sentenceFatura[code('fatura')]));
     var re = code('reserva');
     if (re === 'nada' || re === 'menos1') out.push(tpl(Rr.sentenceReservaSem));
     else if (re) out.push(tpl(Rr.sentenceReservaCom));
@@ -499,8 +500,9 @@
   }
 
   function offerHtml() {
-    var O = C.offer || {};
+    var O = C.offer || {}, P = (C.profiles || {})[perfil()] || {};
     var h = '<section class="offer" id="oferta">' +
+      (P.bridge ? '<p class="bridge">' + tpl(P.bridge) + '</p>' : '') +
       (O.kicker ? '<p class="kicker">' + tpl(O.kicker) + '</p>' : '') +
       '<h2 class="ot">' + tpl(O.title) + '</h2>' +
       (O.image ? '<img class="oimg" src="' + esc(O.image) + '" alt="' + esc(O.title || '') + '" loading="lazy">' : '') +
@@ -693,7 +695,7 @@
     if (!offerOnly) {
       h += '<section class="r-head"><h1>' + tpl(Rr.title) + '</h1>' +
         '<p class="r-perfil">' + tpl(Rr.profileLabel) + ' <strong>' + tpl(P.name) + '</strong></p>' +
-        (P.support ? '<p class="r-support">' + tpl(P.support) + '</p>' : '') + '</section>';
+        (P.diagnosis ? '<div class="r-diag">' + tpl(P.diagnosis, true) + '</div>' : P.support ? '<p class="r-support">' + tpl(P.support) + '</p>' : '') + '</section>';
       h += '<section class="nums">' +
         '<div class="row"><span>' + tpl(Rr.labelPassou) + '</span><b>R$' + money(k.renda * 12) + '</b></div>' +
         '<div class="row"><span>' + tpl(Rr.labelSobra) + '</span><b>' + esc((Rr.sobraDisplay || {})[k.sobraCode] || '') + '</b></div>' +
@@ -702,12 +704,24 @@
         '<p class="disc">' + tpl(Rr.disclaimer) + '</p></section>';
       var fr = sentences();
       if (fr.length) h += '<section><h2 class="h2">' + tpl(Rr.betweenTitle) + '</h2><ul class="between">' + fr.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>' + (Rr.absolution ? '<p class="absol">' + tpl(Rr.absolution) + '</p>' : '') + '</section>';
+      var mc = Rr.mechCta || {};
       h += '<section><h2 class="h2">' + tpl(Rr.mechanismTitle) + '</h2>' + (Rr.mechanismIntro ? '<p class="mech-intro">' + tpl(Rr.mechanismIntro) + '</p>' : '') +
+        /* primeiro botão de compra, no mesmo card do preço da oferta */
+        (mc.title || mc.price || mc.button ? '<div class="price mid-cta">' + (mc.title ? '<p class="pn">' + tpl(mc.title) + '</p>' : '') +
+          (mc.from ? '<p class="pde">' + tpl(mc.from) + '</p>' : '') + (mc.price ? '<p class="pi">' + tpl(mc.price) + '</p>' : '') +
+          '<a class="btn js-checkout" href="' + esc(checkoutUrl()) + '" data-pos="por-onde-comeca">' + tpl(mc.button || (C.offer || {}).button) + '</a>' +
+          (mc.note || (C.offer || {}).guarantee ? '<p class="guar">' + tpl(mc.note || C.offer.guarantee) + '</p>' : '') + '</div>' : '') +
         '<div class="mech-items">' + (Rr.mechanism || []).map(function (m) { return '<div class="mech-item"><span class="ic">' + esc(m.icon || '•') + '</span><div><b>' + tpl(m.title) + '</b>' + tpl(m.text) + '</div></div>'; }).join('') + '</div></section>';
+      var etapas = (P.path || []).filter(function (e) { return e && (e.title || e.text); });
+      if (etapas.length) h += '<section class="path">' + (Rr.pathTitle ? '<h2 class="h2">' + tpl(Rr.pathTitle) + '</h2>' : '') + '<ol>' +
+        etapas.map(function (e, i) { return '<li><span class="n">' + (i + 1) + '</span><div><b>' + tpl(e.title) + '</b>' + tpl(e.text) + '</div></li>'; }).join('') + '</ol></section>';
       if (Rr.future) h += '<section class="future"><p>' + tpl(Rr.future) + '</p></section>';
       h += depoimentosHtml(pf, Rr);
-      var showGap = k.gap > 0, showDel = ['300a800', '800a1500', 'mais1500'].indexOf(code('delivery')) >= 0;
-      if (showGap || showDel) h += '<section class="roi"><h2 class="h2">' + tpl(Rr.roiTitle) + '</h2>' + (showGap ? '<p>' + tpl(Rr.roiGap) + '</p>' : '') + (showDel ? '<p>' + tpl(Rr.roiDelivery) + '</p>' : '') + '</section>';
+      /* quem rola cartão vê a linha dos juros; os outros, a dos gastos (se gastam R$300 ou mais) */
+      var showGap = k.gap > 0, showDiv = code('divida') === 'rolando' && !!Rr.roiDivida,
+        showDel = !showDiv && ['300a800', '800a1500', 'mais1500'].indexOf(code('delivery')) >= 0;
+      if (showGap || showDiv || showDel) h += '<section class="roi"><h2 class="h2">' + tpl(Rr.roiTitle) + '</h2>' + (showGap ? '<p>' + tpl(Rr.roiGap) + '</p>' : '') +
+        (showDiv ? '<p>' + tpl(Rr.roiDivida) + '</p>' : '') + (showDel ? '<p>' + tpl(Rr.roiDelivery) + '</p>' : '') + '</section>';
     }
     h += offerHtml();
     if (C.meta && C.meta.footer) h += '<p class="foot">' + tpl(C.meta.footer) + '</p>';
