@@ -104,13 +104,17 @@ const escAttr = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ 
    em 20/10/2026 no domínio real: PageView do Meta de 1,8 s pra 1,1 s no 4G normal e de 5,5 s pra
    4,6 s no 4G lento, sem atrasar a capa no 4G normal. Quem fecha o quiz antes do PageView não vira
    visualização da página de destino no Meta. A UTMify fica depois do load pra não disputar banda.
-   Nada disso carrega no localhost nem na prévia do admin (no localhost dá pra forçar com ?gtm=1). */
+   Nada disso carrega no localhost nem na prévia do admin (no localhost dá pra forçar com ?gtm=1).
+   Robô declarado (webdriver ou user-agent de bot/pré-carregamento do Meta) também não carrega nada:
+   sem isso o Pixel marcava PageView da onda de robô (20/10/2026: 1.482 eventos no quiz em 2 h contra
+   472 sessões humanas). O filtro do GTM sozinho não resolve, porque só age depois do gtm.js carregar. */
 function rastreioHtml(m) {
   const gtm = /^GTM-[A-Z0-9]{4,12}$/.test(m.gtmId || '') ? m.gtmId : '';
   const utmify = /^[a-f0-9]{24}$/i.test(m.utmifyPixelId || '') ? m.utmifyPixelId : '';
   const head = `<script>window.dataLayer=window.dataLayer||[];window.__lckTrk=true;(function(){var loc=location,d=document;` +
     `if(/[?&]preview=1/.test(loc.search))return;` +
     `if(/^(localhost|127\\.0\\.0\\.1|\\[::1\\])$/.test(loc.hostname)&&!/[?&]gtm=1/.test(loc.search))return;` +
+    `if(navigator.webdriver||/bot|crawler|spider|crawling|headless|lighthouse|facebookexternalhit|facebot|meta-externalagent|meta-externalfetcher|preview|prerender/i.test(navigator.userAgent||''))return;` +
     (gtm ? `function lk(r,h,a){var l=d.createElement('link');l.rel=r;l.href=h;if(a){l.as=a;l.fetchPriority='low';}d.head.appendChild(l);}` +
       `lk('preconnect','https://www.googletagmanager.com');lk('preconnect','https://connect.facebook.net');lk('preconnect','https://www.facebook.com');` +
       `lk('preload','https://connect.facebook.net/en_US/fbevents.js','script');` +
@@ -132,7 +136,8 @@ async function paginaQuiz(request, env, ctx) {
     })
   ]);
   const capa = (cfg.screens || [])[0] || {};
-  const trk = rastreioHtml(cfg.meta || {});
+  /* robô declarado nem recebe o bloco de rastreio (o navegador tem o mesmo teste, mas aqui corta antes) */
+  const trk = ROBO_UA.test(request.headers.get('User-Agent') || '') ? { head: '', body: '' } : rastreioHtml(cfg.meta || {});
   const cfgJs = JSON.stringify(configPublico(cfg)).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   const head =
     (capa.type === 'cover' && capa.image ? `<link rel="preload" as="image" href="${escAttr(capa.image)}" fetchpriority="high">\n  ` : '') +
