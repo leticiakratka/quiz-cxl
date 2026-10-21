@@ -183,11 +183,12 @@ function payloadCrm(cfg, lead, respostasPorTela, teste) {
   ((cfg && cfg.screens) || []).forEach((s) => { porId[s.id] = limpa(s.title || s.quote || s.id); });
   const respostas = {};
   Object.entries(respostasPorTela || {}).forEach(([id, v]) => { if (v !== '' && v != null) respostas[porId[id] || id] = String(v); });
+  const fora = String(lead.whatsapp || '').charAt(0) === '+';   // número de fora já vem com o código do país
   const zap = String(lead.whatsapp || '').replace(/\D/g, '');
   const perfil = (cfg && cfg.profiles && cfg.profiles[lead.perfil]) || {};
   return {
     fonte: m.webhookFonte || 'Quiz Análise', origem: 'Quiz Análise Financeira', formulario: 'quiz_analise_cxl',
-    nome: lead.nome || '', email: lead.email || '', telefone: zap.length >= 10 && zap.length <= 11 ? '55' + zap : zap, whatsapp: zap,
+    nome: lead.nome || '', email: lead.email || '', telefone: !fora && zap.length >= 10 && zap.length <= 11 ? '55' + zap : zap, whatsapp: zap,
     utm_source: lead.utm_source || '', utm_medium: lead.utm_medium || '', utm_campaign: lead.utm_campaign || '',
     utm_content: lead.utm_content || '', utm_term: lead.utm_term || '',
     perfil: lead.perfil || '', perfil_nome: limpa(perfil.name), renda: lead.renda || '', sobra: lead.sobra || '',
@@ -296,9 +297,12 @@ export default {
 
       if (p === '/api/lead' && request.method === 'POST') {
         const d = await lerCorpo(request, 20000);
-        const zap = corta(d.whatsapp, 20).replace(/\D/g, '');
+        /* número de fora chega com "+" na frente (código do país) e fica guardado assim, pra não
+           ganhar um 55 errado no CRM nem no link do WhatsApp; celular do Brasil segue só dígitos */
+        const zapBruto = corta(d.whatsapp, 20).trim(), zapDig = zapBruto.replace(/\D/g, '');
+        const zap = zapBruto.charAt(0) === '+' ? '+' + zapDig : zapDig;
         const email = corta(d.email, 160).trim();
-        if (zap.length < 10 || !/@/.test(email)) return json({ ok: false, erro: 'contato inválido' }, 400);
+        if (zapDig.length < (zap.charAt(0) === '+' ? 8 : 10) || !/@/.test(email)) return json({ ok: false, erro: 'contato inválido' }, 400);
         const u = d.utm || {};
         const lead = {
           created_at: agora(), nome: corta(d.nome, 80), whatsapp: zap, email, perfil: corta(d.perfil, 4),

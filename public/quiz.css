@@ -140,6 +140,7 @@ strong { font-weight: 700; }
 .input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
 .input.err { border-color: #C2413A; }
 .err-msg { color: #C2413A; font-size: 13px; margin-top: 6px; }
+.zap-hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
 .ask { font-size: 21px; text-align: center; margin-top: 12px; }
 
 /* ---------- frase ---------- */

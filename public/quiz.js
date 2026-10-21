@@ -383,7 +383,7 @@
       html: function (sc) {
         var a = S.ans[sc.id] || {};
         return '<p class="cap-title">' + tpl(sc.title) + '</p>' +
-          '<div class="field"><label for="f-w">' + tpl(sc.whatsLabel) + '</label><input class="input" id="f-w" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="(00) 00000-0000" value="' + esc(a.whatsapp || '') + '"><p class="err-msg" id="e-w" hidden>' + tpl(sc.errWhats) + '</p></div>' +
+          '<div class="field"><label for="f-w">' + tpl(sc.whatsLabel) + '</label><input class="input" id="f-w" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" value="' + esc(a.whatsapp || '') + '"><p class="err-msg" id="e-w" hidden>' + tpl(sc.errWhats) + '</p><p class="zap-hint">Mora fora do Brasil? Começa com + e o código do país.</p></div>' +
           '<div class="field"><label for="f-e">' + tpl(sc.emailLabel) + '</label><input class="input" id="f-e" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com" value="' + esc(a.email || '') + '"><p class="err-msg" id="e-e" hidden>' + tpl(sc.errEmail) + '</p></div>' +
           '<button class="btn" data-act="send">' + tpl(sc.button) + '</button>' +
           (sc.consent ? '<p class="consent">' + tpl(sc.consent) + '</p>' : '');
@@ -391,15 +391,19 @@
       bind: function (sc) {
         var w = app.querySelector('#f-w'), e = app.querySelector('#f-e'), btn = app.querySelector('[data-act=send]');
         w.oninput = function () {
-          var d = w.value.replace(/\D/g, '').slice(0, 11), f = d;
-          if (d.length > 2) f = '(' + d.slice(0, 2) + ') ' + d.slice(2);
-          if (d.length > 7) f = '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+          var v = w.value.trim(), f;
+          if (v.charAt(0) === '+') f = '+' + v.replace(/\D/g, '').slice(0, 15);   /* número de fora: + e o código do país, sem máscara */
+          else {
+            var d = v.replace(/\D/g, '').slice(0, 11); f = d;
+            if (d.length > 2) f = '(' + d.slice(0, 2) + ') ' + d.slice(2);
+            if (d.length > 7) f = '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+          }
           w.value = f; w.classList.remove('err'); app.querySelector('#e-w').hidden = true;
         };
         e.oninput = function () { e.classList.remove('err'); app.querySelector('#e-e').hidden = true; };
         btn.onclick = function () {
-          var digits = w.value.replace(/\D/g, ''), mail = e.value.trim(), ok = true;
-          if (!/^[1-9][0-9]9\d{8}$/.test(digits)) { w.classList.add('err'); app.querySelector('#e-w').hidden = false; ok = false; }
+          var digits = zapNorm(w.value), mail = e.value.trim(), ok = true;
+          if (!digits) { w.classList.add('err'); app.querySelector('#e-w').hidden = false; ok = false; }
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) { e.classList.add('err'); app.querySelector('#e-e').hidden = false; ok = false; }
           if (!ok) return;
           S.ans[sc.id] = { whatsapp: w.value, email: mail };
@@ -445,6 +449,17 @@
     });
     return out;
   }
+  /* WhatsApp validado: celular do Brasil vira 11 dígitos (DDD + 9 + número, como sempre foi);
+     número de fora vira "+" + código do país + número (8 a 15 dígitos). +55 é tratado como Brasil.
+     Devolve '' quando o número não serve. */
+  function zapNorm(v) {
+    var d = String(v || '').replace(/\D/g, '');
+    if (String(v || '').trim().charAt(0) === '+') {
+      if (d.slice(0, 2) === '55') return /^[1-9][0-9]9\d{8}$/.test(d.slice(2)) ? d.slice(2) : '';
+      return d.length >= 8 && d.length <= 15 ? '+' + d : '';
+    }
+    return /^[1-9][0-9]9\d{8}$/.test(d) ? d : '';
+  }
   function sendLead(whatsDigits, mail) {
     var k = calc(), pf = perfil();
     var rs = screenByCalc('renda'), ss = screenByCalc('sobra');
@@ -458,7 +473,7 @@
        correspondência avançada da tag do Meta no GTM */
     dl({
       event: 'quiz_lead', quiz_id: QUIZ_ID, quiz_perfil: pf, event_id: 'lead.' + S.sid,
-      quiz_email: mail, quiz_telefone: '55' + whatsDigits, quiz_nome: S.nome
+      quiz_email: mail, quiz_telefone: whatsDigits.charAt(0) === '+' ? whatsDigits.slice(1) : '55' + whatsDigits, quiz_nome: S.nome
     });
     if (PREVIEW) return;
     try { localStorage.setItem('cxl_analise_b_lead', JSON.stringify(payload)); } catch (e) { }

@@ -879,13 +879,14 @@
       if (!d.items.length) { $('#leads-tbl').innerHTML = '<tr><td class="empty">Nenhum lead ' + (leadsQ ? 'pra essa busca' : (tudo ? 'ainda' : 'nesse período')) + '.</td></tr>'; $('#leads-pager').innerHTML = ''; return; }
       $('#leads-tbl').innerHTML = '<thead><tr><th>Data</th><th>Nome</th><th>WhatsApp</th><th>E-mail</th><th>Perfil</th><th>Renda</th><th>Sobra</th><th>Diferença/mês</th><th>Campanha</th><th>Conjunto</th><th>Anúncio</th></tr></thead><tbody>' +
         d.items.map(function (r, i) {
-          return '<tr data-i="' + i + '"><td>' + fmtDate(r.created_at) + '</td><td>' + esc(r.nome) + '</td><td><a href="https://wa.me/55' + esc(r.whatsapp) + '" target="_blank" rel="noopener">' + esc(fmtZap(r.whatsapp)) + '</a></td><td>' + esc(r.email) + '</td>' +
+          return '<tr data-i="' + i + '"><td>' + fmtDate(r.created_at) + '</td><td>' + esc(r.nome) + '</td><td><a href="https://wa.me/' + esc(waNum(r.whatsapp)) + '" target="_blank" rel="noopener">' + esc(fmtZap(r.whatsapp)) + '</a></td><td>' + esc(r.email) + '</td>' +
             '<td><span class="pill ' + esc(r.perfil) + '">' + esc(r.perfil) + '</span></td><td>' + esc(r.renda) + '</td><td>' + esc(r.sobra) + '</td><td>R$' + Number(r.gap_mes || 0).toLocaleString('pt-BR') + '</td><td>' + esc(r.utm_campaign) + '</td><td>' + esc(r.utm_medium) + '</td><td>' + esc(r.utm_content) + '</td></tr>';
         }).join('') + '</tbody>';
       var pages = Math.max(1, Math.ceil(d.total / d.size));
       $('#leads-pager').innerHTML = 'Página ' + d.page + ' de ' + pages + ' <button class="b b-sm" ' + (d.page <= 1 ? 'disabled' : '') + ' data-p="' + (d.page - 1) + '">←</button><button class="b b-sm" ' + (d.page >= pages ? 'disabled' : '') + ' data-p="' + (d.page + 1) + '">→</button>';
     }).catch(function (e) { $('#leads-tbl').innerHTML = '<tr><td class="empty">' + esc(e.message) + '</td></tr>'; });
   }
+  function waNum(z) { z = String(z || ''); return z.charAt(0) === '+' ? z.slice(1) : '55' + z; }   // número de fora já tem o código do país
   function fmtZap(z) { z = String(z || ''); return z.length === 11 ? '(' + z.slice(0, 2) + ') ' + z.slice(2, 7) + '-' + z.slice(7) : z; }
   function kpi(l, v, sub) { return '<div class="kpi"><span>' + esc(l) + '</span><b>' + esc(v) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>'; }
   function taxa(a, b) { return b > 0 ? Math.round(a / b * 100) + '%' : '—'; }
@@ -900,7 +901,7 @@
     var labels = {}; D.screens.forEach(function (s, i) { labels[s.id] = (i + 1) + '. ' + plain(s.title || s.quote || s.id); });
     modal('<h3>' + esc(r.nome) + ' <span class="pill ' + esc(r.perfil) + '">' + esc(r.perfil) + '</span></h3><p>' + esc(r.email) + ' · ' + esc(fmtZap(r.whatsapp)) + ' · ' + fmtDate(r.created_at) + '</p>' +
       '<dl class="kv">' + Object.keys(resp).map(function (k) { return '<dt>' + esc(labels[k] || k) + '</dt><dd>' + esc(resp[k]) + '</dd>'; }).join('') + '</dl>' +
-      '<div class="modal-acts"><a class="b" href="https://wa.me/55' + esc(r.whatsapp) + '" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="b b-pri" data-close>Fechar</button></div>');
+      '<div class="modal-acts"><a class="b" href="https://wa.me/' + esc(waNum(r.whatsapp)) + '" target="_blank" rel="noopener">Abrir WhatsApp</a><button class="b b-pri" data-close>Fechar</button></div>');
   };
   $('#leads-csv').onclick = function () {
     fetch('/api/admin/leads.csv?q=' + encodeURIComponent($('#leads-q').value.trim()) + periodoQs($('#leads-datef')), { headers: { 'Authorization': 'Bearer ' + PW } }).then(function (r) { if (!r.ok) throw new Error('Erro ' + r.status); return r.blob(); })
