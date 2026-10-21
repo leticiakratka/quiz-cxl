@@ -9,3 +9,6 @@ CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);
 -- funil novo: 1 linha por sessão com a lista de telas (events fica só com o histórico antigo)
 CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, steps TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions(created_at);
+
+-- registro dos envios do lead pro CRM (webhook), últimos 200
+CREATE TABLE IF NOT EXISTS webhook_envios (id INTEGER PRIMARY KEY AUTOINCREMENT, criado_em TEXT NOT NULL, teste INTEGER, destino TEXT, status INTEGER, ok INTEGER, tentativas INTEGER, resposta TEXT, email TEXT);

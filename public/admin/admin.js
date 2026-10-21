@@ -459,6 +459,7 @@
     if (D.screens[D.screens.length - 1].type !== 'loading') w.push('A tela de carregamento precisa ser a última.');
     if (idxOf('captura') > idxOf('analise')) w.push('A captura precisa vir antes da análise.');
     if (!/^https:\/\//.test(D.meta.checkoutUrl || '')) w.push('Link do checkout vazio ou sem https (aba Configurações).');
+    if (D.meta.webhookAtivo && !/^https:\/\//.test(D.meta.webhookUrl || '')) w.push('O envio pro CRM está marcado, mas o endereço do webhook está vazio ou sem https (aba Configurações).');
     /* regra do funil: o nome do produto só aparece na oferta */
     D.screens.forEach(function (s, i) { if (/caixa\s*livre/i.test(JSON.stringify(s))) w.push('Tela ' + (i + 1) + ' cita "Caixa Livre". O nome do produto só pode aparecer na oferta.'); });
     ['R1', 'R2', 'R3'].forEach(function (k) { if (/caixa\s*livre/i.test(JSON.stringify(D.profiles[k] || {}))) w.push('Perfil ' + k + ' cita "Caixa Livre" (aparece antes da oferta).'); });
@@ -542,7 +543,7 @@
     opt = opt || {};
     var v = getPath(D, path); v = v == null ? '' : v;
     var field = opt.area ? '<textarea data-path="' + path + '" rows="' + (opt.rows || 3) + '">' + esc(v) + '</textarea>'
-      : '<input data-path="' + path + '"' + (opt.num ? ' type="number" data-num="1"' : '') + ' value="' + esc(v) + '"' + (opt.ph ? ' placeholder="' + esc(opt.ph) + '"' : '') + '>';
+      : '<input data-path="' + path + '"' + (opt.num ? ' type="number" data-num="1"' : '') + (opt.pw ? ' type="password" autocomplete="off"' : '') + ' value="' + esc(v) + '"' + (opt.ph ? ' placeholder="' + esc(opt.ph) + '"' : '') + '>';
     return '<label class="f"><span>' + label + '</span>' + field + (opt.vars ? chips() : '') + (opt.hint ? '<small>' + opt.hint + '</small>' : '') + '</label>';
   }
   function fCheck(label, path) {
@@ -941,23 +942,55 @@
       '<div class="card"><h3>Venda e rastreio</h3><p class="sub">Vale pro quiz depois que publicar.</p><div class="grid2" id="cfg-meta">' +
       fText('Link do checkout', m + 'checkoutUrl', { hint: 'As UTMs e o fbp~fbc~sid vão no utm_term, igual na cxlv4 (Worker da CAPI lê isso na venda).' }) +
       fText('GTM', m + 'gtmId', { hint: 'Container de infoproduto da Leticia: GTM-N9GCCZSW.' }) + fText('Pixel da UTMify', m + 'utmifyPixelId') +
-      fText('Webhook do lead (opcional)', m + 'webhookUrl', { ph: 'https://script.google.com/macros/s/...', hint: 'Todo lead já fica salvo aqui no painel. Se preencher, cada lead também é enviado pra esse endereço (ex.: Apps Script de uma planilha).' }) +
       '</div>' + fText('Rodapé legal', m + 'footer', { area: true, rows: 2 }) + '</div>' +
+      '<div class="card"><h3>CRM (webhook do lead)</h3><p class="sub">Cada lead que deixa WhatsApp e e-mail no quiz é enviado na hora pra esse endereço, em JSON (nome, email, telefone, fonte, respostas e UTMs). Endereço, cabeçalho e token ficam só no servidor, não aparecem na página do quiz.</p><div class="grid2">' +
+      fText('Endereço de entrada do CRM', m + 'webhookUrl', { ph: 'https://...' }) + fText('Fonte enviada', m + 'webhookFonte', { ph: 'Quiz Análise', hint: 'Nome da fonte que o CRM vai receber (crie igual em Fontes no CRM).' }) +
+      fText('Cabeçalho de autenticação (opcional)', m + 'webhookHeader', { ph: 'Authorization ou x-webhook-token' }) + fText('Token (opcional)', m + 'webhookToken', { pw: true, ph: 'Bearer ... ou a chave' }) +
+      '</div><div class="nf-teste"><b>1. Teste primeiro</b><p class="muted">Manda um lead de exemplo pro endereço acima, sem publicar nada. Se o CRM dispara mensagem automática pra lead novo, use o seu WhatsApp aqui.</p><div class="grid2">' +
+      '<label class="f"><span>Nome do teste</span><input id="wt-nome" value="TESTE QUIZ (pode apagar)"></label><label class="f"><span>E-mail do teste</span><input id="wt-email" value="teste-quiz@exemplo.com"></label>' +
+      '<label class="f"><span>WhatsApp do teste</span><input id="wt-zap" placeholder="(84) 99999-9999"></label></div>' +
+      '<button class="b b-pri" id="wt-go" style="margin-top:10px">Enviar lead de teste</button><div id="wt-res"></div></div>' +
+      '<div class="nf-teste"><b>2. Depois, produção</b>' + fCheck('Enviar cada lead novo pro CRM', m + 'webhookAtivo') + '<p class="muted">Vale depois de clicar em Publicar. Até lá, nenhum lead de verdade vai pro CRM.</p></div>' +
+      '<div class="nf-teste"><b>Últimos envios</b> <button class="b b-sm" id="wt-log-btn">Atualizar</button><ul class="hist" id="wt-log"><li class="muted">Carregando…</li></ul></div></div>' +
       '<div class="card"><h3>Cores</h3><p class="sub">Escolha um padrão ou ajuste cor por cor.</p><div class="row-gap" style="margin-top:10px"><button class="b" data-theme="leticia">Cores da Leticia</button><button class="b" data-theme="facescan">Preto (igual ao FaceScan)</button></div>' +
       '<div class="swatches">' + colors.map(function (c) { return '<label class="color"><input type="color" data-color="' + c[0] + '" value="' + esc(t[c[0]] || '#000000') + '">' + c[1] + '</label>'; }).join('') + '</div></div>' +
       '<div class="card"><h3>Versões publicadas</h3><p class="sub">Volte uma versão antiga pro rascunho. Ela só vai pro ar quando publicar de novo.</p><ul class="hist" id="hist"><li class="muted">Carregando…</li></ul></div>' +
       '<div class="card"><h3>Backup</h3><p class="sub">Baixe o rascunho em JSON ou volte pro conteúdo original do Prompt B.</p><div class="row-gap" style="margin-top:10px"><button class="b" id="exp-json">Baixar JSON</button><label class="b">Importar JSON<input type="file" id="imp-json" accept="application/json" hidden></label><button class="b b-danger" id="reset-def">Voltar pro conteúdo original</button></div></div>';
+    carregaEnvios();
     api('/api/admin/history').then(function (d) {
       $('#hist').innerHTML = d.items.length ? d.items.map(function (h) { return '<li><b>#' + h.id + '</b><span>' + fmtDate(h.published_at) + '</span>' + (h.note ? '<span>· ' + esc(h.note) + '</span>' : '') + '<button class="b b-sm" data-restore="' + h.id + '">Restaurar</button></li>'; }).join('') : '<li class="muted">Nada publicado ainda.</li>';
     }).catch(function () { $('#hist').innerHTML = '<li class="muted">Não consegui carregar.</li>'; });
   }
+  function carregaEnvios() {
+    api('/api/admin/webhook-envios').then(function (d) {
+      $('#wt-log').innerHTML = d.items.length ? d.items.map(function (r) {
+        return '<li><b>' + (r.ok ? '✅' : '⚠️') + ' ' + (r.status || 'sem resposta') + '</b><span>' + fmtDate(r.criado_em) + '</span><span>· ' + (r.teste ? 'teste' : 'lead') + ' · ' + esc(r.email || '') + ' · ' + esc(r.destino || '') + (r.tentativas > 1 ? ' · ' + r.tentativas + ' tentativas' : '') + '</span>' +
+          (r.ok ? '' : '<span class="muted" title="' + esc(r.resposta || '') + '">' + esc((r.resposta || '').slice(0, 80)) + '</span>') + '</li>';
+      }).join('') : '<li class="muted">Nenhum envio ainda.</li>';
+    }).catch(function () { $('#wt-log').innerHTML = '<li class="muted">Não consegui carregar.</li>'; });
+  }
+  function testaWebhook() {
+    var m = D.meta || {}, box = $('#wt-res'), btn = $('#wt-go');
+    if (!/^https:\/\//.test(m.webhookUrl || '')) { box.innerHTML = '<div class="ed-note" style="margin-top:10px">Preencha o endereço de entrada do CRM (começando com https://).</div>'; return; }
+    btn.disabled = true; box.innerHTML = '<p class="muted" style="margin-top:10px">Enviando…</p>';
+    api('/api/admin/webhook-teste', { method: 'POST', body: { url: m.webhookUrl, header: m.webhookHeader || '', token: m.webhookToken || '', fonte: m.webhookFonte || '', nome: $('#wt-nome').value, email: $('#wt-email').value, whatsapp: $('#wt-zap').value, config: D } })
+      .then(function (r) {
+        box.innerHTML = '<div class="ed-note" style="margin-top:10px;' + (r.ok ? 'background:#E8F7EE;color:#14532D' : 'background:#FDECEC;color:#7F1D1D') + '"><b>' + (r.ok ? '✅ O CRM aceitou (' + r.status + ')' : '⚠️ O CRM respondeu ' + (r.status || 'nada') + (r.tentativas > 1 ? ' depois de ' + r.tentativas + ' tentativas' : '')) + '</b>' +
+          (r.resposta ? '<pre class="wt-pre">' + esc(r.resposta) + '</pre>' : '') + '<details><summary>Ver o que foi enviado</summary><pre class="wt-pre">' + esc(JSON.stringify(r.enviado, null, 2)) + '</pre></details>' +
+          (r.ok ? '<p>Confira no CRM (Admin → Ingestão) se o lead apareceu certo. Se sim, marque a produção abaixo e publique.</p>' : '') + '</div>';
+        carregaEnvios();
+      }).catch(function (x) { box.innerHTML = '<div class="ed-note" style="margin-top:10px">' + esc(x.message) + '</div>'; })
+      .then(function () { btn.disabled = false; });
+  }
   $('#v-config').addEventListener('input', function (e) {
     var el = e.target;
-    if (el.dataset.path) { setPath(D, el.dataset.path, el.value); markDirty(); renderWarnings(); }
+    if (el.dataset.path) { setPath(D, el.dataset.path, el.dataset.bool ? el.checked : el.value); markDirty(); renderWarnings(); }
     if (el.dataset.color) { D.theme = D.theme || {}; D.theme[el.dataset.color] = el.value; D.theme.preset = 'custom'; markDirty(); }
   });
   $('#v-config').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'wt-go') { testaWebhook(); return; }
+    if (b.id === 'wt-log-btn') { carregaEnvios(); return; }
     if (b.dataset.theme) { D.theme = clone(THEMES[b.dataset.theme]); markDirty(); renderConfig(); toast('Cores aplicadas no rascunho'); }
     if (b.dataset.restore) {
       api('/api/admin/restore?id=' + b.dataset.restore, { method: 'POST' }).then(function (r) { D = r.draft; DRAFT_AT = r.draftUpdatedAt; dirty = false; setStatus(); renderAll(); renderConfig(); toast('Versão #' + b.dataset.restore + ' voltou pro rascunho'); }).catch(function (x) { toast(x.message, true); });

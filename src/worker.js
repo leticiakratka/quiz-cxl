@@ -11,6 +11,8 @@
  *   POST /api/event    lista de telas da sessão; 1 linha por sessão na tabela sessions, pro funil
  *
  * Rotas do admin (header Authorization: Bearer <ADMIN_PASSWORD>)
+ *   POST /api/admin/webhook-teste      manda um lead de teste pro webhook dos campos (sem publicar)
+ *   GET  /api/admin/webhook-envios     últimos envios do lead pro CRM
  *   POST /api/admin/login
  *   GET  /api/admin/config            rascunho + publicado
  *   PUT  /api/admin/config            salva rascunho
@@ -34,7 +36,9 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at)`,
   /* funil novo: 1 linha por sessão com a lista de telas (events fica só com o histórico antigo) */
   `CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, steps TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
-  `CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions(created_at)`
+  `CREATE INDEX IF NOT EXISTS idx_sessions_created ON sessions(created_at)`,
+  /* registro dos envios do lead pro CRM (webhook), últimos 200 */
+  `CREATE TABLE IF NOT EXISTS webhook_envios (id INTEGER PRIMARY KEY AUTOINCREMENT, criado_em TEXT NOT NULL, teste INTEGER, destino TEXT, status INTEGER, ok INTEGER, tentativas INTEGER, resposta TEXT, email TEXT)`
 ];
 let schemaPronto = false;
 
@@ -129,7 +133,7 @@ async function paginaQuiz(request, env, ctx) {
   ]);
   const capa = (cfg.screens || [])[0] || {};
   const trk = rastreioHtml(cfg.meta || {});
-  const cfgJs = JSON.stringify(cfg).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  const cfgJs = JSON.stringify(configPublico(cfg)).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   const head =
     (capa.type === 'cover' && capa.image ? `<link rel="preload" as="image" href="${escAttr(capa.image)}" fetchpriority="high">\n  ` : '') +
     `<script>window.__CFG=${cfgJs};</script>\n  ` + trk.head;
@@ -163,13 +167,59 @@ function validaConfig(c) {
   return null;
 }
 
-async function repassaWebhook(url, lead) {
+/* ---------------- webhook do lead (CRM) ----------------
+   O lead vai em JSON com os nomes de campo mais comuns de CRM (nome, email, telefone, fonte, respostas,
+   utm_*), mais variações (whatsapp, origem, dados_formulario) pra servir sem ajuste na maioria das
+   entradas. As respostas vão com o texto da pergunta, legíveis no CRM. URL, cabeçalho e token ficam só
+   no servidor: nunca vão pra página pública (ver configPublico). */
+const limpa = (s) => String(s || '').replace(/\*\*/g, '').replace(/\{\{\s*\w+\s*\}\}/g, '').replace(/\s+/g, ' ').trim();
+function payloadCrm(cfg, lead, respostasPorTela, teste) {
+  const m = (cfg && cfg.meta) || {}, porId = {};
+  ((cfg && cfg.screens) || []).forEach((s) => { porId[s.id] = limpa(s.title || s.quote || s.id); });
+  const respostas = {};
+  Object.entries(respostasPorTela || {}).forEach(([id, v]) => { if (v !== '' && v != null) respostas[porId[id] || id] = String(v); });
+  const zap = String(lead.whatsapp || '').replace(/\D/g, '');
+  const perfil = (cfg && cfg.profiles && cfg.profiles[lead.perfil]) || {};
+  return {
+    fonte: m.webhookFonte || 'Quiz Análise', origem: 'Quiz Análise Financeira', formulario: 'quiz_analise_cxl',
+    nome: lead.nome || '', email: lead.email || '', telefone: zap.length >= 10 && zap.length <= 11 ? '55' + zap : zap, whatsapp: zap,
+    utm_source: lead.utm_source || '', utm_medium: lead.utm_medium || '', utm_campaign: lead.utm_campaign || '',
+    utm_content: lead.utm_content || '', utm_term: lead.utm_term || '',
+    perfil: lead.perfil || '', perfil_nome: limpa(perfil.name), renda: lead.renda || '', sobra: lead.sobra || '',
+    diferenca_mes: Number(lead.gap_mes) || 0, respostas, dados_formulario: respostas,
+    pagina: lead.page || '', sessao: lead.sid || '', criado_em: lead.created_at || new Date().toISOString(), teste: !!teste
+  };
+}
+function cabecalhosCrm(m) {
+  const h = { 'Content-Type': 'application/json' };
+  const nome = String(m.webhookHeader || '').trim(), valor = String(m.webhookToken || '').trim();
+  if (nome && valor && /^[A-Za-z0-9-]{1,60}$/.test(nome)) h[nome] = valor;
+  return h;
+}
+/* até 3 tentativas (0, 2 e 5 s); cada envio fica registrado em webhook_envios pro painel mostrar */
+async function enviaCrm(env, url, m, payload) {
+  let status = 0, resposta = '', ok = false, tent = 0;
+  for (const espera of [0, 2000, 5000]) {
+    if (espera) await new Promise((r) => setTimeout(r, espera));
+    tent++;
+    try {
+      const r = await fetch(url, { method: 'POST', headers: cabecalhosCrm(m), body: JSON.stringify(payload), redirect: 'follow' });
+      status = r.status; resposta = (await r.text()).slice(0, 600); ok = r.ok;
+      if (ok || (status >= 400 && status < 500 && status !== 408 && status !== 429)) break;
+    } catch (e) { status = 0; resposta = String(e && e.message || e).slice(0, 300); }
+  }
   try {
-    const body = new URLSearchParams();
-    body.set('formulario', 'quiz_analise_cxl');
-    Object.entries(lead).forEach(([k, v]) => body.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')));
-    await fetch(url, { method: 'POST', body, redirect: 'follow' });
-  } catch (e) { /* webhook é opcional, o lead já está no D1 */ }
+    await env.DB.prepare('INSERT INTO webhook_envios (criado_em, teste, destino, status, ok, tentativas, resposta, email) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
+      .bind(new Date().toISOString(), payload.teste ? 1 : 0, (() => { try { return new URL(url).host; } catch (e) { return ''; } })(), status, ok ? 1 : 0, tent, resposta, payload.email || '').run();
+    await env.DB.prepare('DELETE FROM webhook_envios WHERE id NOT IN (SELECT id FROM webhook_envios ORDER BY id DESC LIMIT 200)').run();
+  } catch (e) { /* registro é acessório */ }
+  return { ok, status, tentativas: tent, resposta };
+}
+/* o que vai pra página pública (HTML e /api/config): sem nada do webhook */
+function configPublico(cfg) {
+  const meta = { ...((cfg && cfg.meta) || {}) };
+  ['webhookUrl', 'webhookHeader', 'webhookToken', 'webhookFonte', 'webhookAtivo'].forEach((k) => delete meta[k]);
+  return { ...cfg, meta };
 }
 
 /* período vindo do painel: ?from= e ?to= em ISO (UTC), "to" exclusivo. O painel converte o dia de
@@ -232,7 +282,7 @@ export default {
     try {
       /* ---------------- públicas ---------------- */
       if (p === '/api/config' && request.method === 'GET') {
-        return json(await configPublicado(env, request, ctx), 200, { 'Cache-Control': 'public, max-age=30' });
+        return json(configPublico(await configPublicado(env, request, ctx)), 200, { 'Cache-Control': 'public, max-age=30' });
       }
 
       /* se o banco estiver fora (ex.: limite diário do plano), o lead ainda tem saída pelo webhook */
@@ -270,10 +320,11 @@ export default {
           } catch (e) { /* cai no webhook abaixo */ }
         }
         if (repetido) return json({ ok: true, repetido: true });
-        let hook = '';
-        try { hook = ((await configPublicado(env, request, ctx)).meta || {}).webhookUrl || ''; } catch (e) { }
-        const temHook = /^https:\/\//.test(hook);
-        if (temHook) ctx.waitUntil(repassaWebhook(hook, { ...lead, respostas: d.respostas || {} }));
+        let cfgPub = null;
+        try { cfgPub = await configPublicado(env, request, ctx); } catch (e) { }
+        const mPub = (cfgPub && cfgPub.meta) || {}, hook = mPub.webhookUrl || '';
+        const temHook = mPub.webhookAtivo === true && /^https:\/\//.test(hook);
+        if (temHook) ctx.waitUntil(enviaCrm(env, hook, mPub, payloadCrm(cfgPub, lead, d.respostas || {}, false)));
         /* sem banco e sem webhook: 503 faz o quiz guardar o lead no aparelho e tentar de novo depois */
         if (!gravou && !temHook) return json({ ok: false, erro: 'não deu pra salvar agora' }, 503);
         return json({ ok: true, banco: gravou });
@@ -304,6 +355,36 @@ export default {
         if (!autorizado(request, env)) return json({ erro: 'senha inválida' }, 401);
 
         if (p === '/api/admin/login') return json({ ok: true });
+
+        /* botão "Enviar lead de teste": usa o que está nos campos (sem publicar) e devolve a resposta do CRM */
+        if (p === '/api/admin/webhook-teste' && request.method === 'POST') {
+          const d = await lerCorpo(request, 400000); /* vem com o rascunho inteiro, pra usar as perguntas atuais */
+          const url = String(d.url || '').trim();
+          if (!/^https:\/\//.test(url)) return json({ erro: 'O endereço precisa começar com https://' }, 400);
+          let cfgT = null;
+          try { cfgT = d.config && d.config.screens ? d.config : await configPublicado(env, request, ctx); } catch (e) { }
+          const m = { webhookHeader: d.header, webhookToken: d.token, webhookFonte: d.fonte };
+          const zap = String(d.whatsapp || '').replace(/\D/g, '') || '00000000000';
+          const respostasExemplo = {};
+          ((cfgT && cfgT.screens) || []).forEach((s) => {
+            if (s.options && s.options.length) respostasExemplo[s.id] = s.options[0].label;
+            else if (s.type === 'statement') respostasExemplo[s.id] = 'SIM';
+          });
+          const lead = {
+            created_at: agora(), nome: corta(d.nome, 80) || 'TESTE QUIZ (pode apagar)', email: corta(d.email, 160) || 'teste-quiz@exemplo.com', whatsapp: zap,
+            perfil: 'R1', renda: 'De R$8 mil a R$12 mil', sobra: 'Nada, zera certinho', gap_mes: 3000,
+            utm_source: 'teste', utm_medium: 'teste', utm_campaign: 'teste do webhook', utm_content: 'teste', utm_term: '', sid: 'teste-' + Date.now().toString(36), page: 'https://quiz.leticiakratka.com.br/'
+          };
+          const cfgFonte = { ...(cfgT || {}), meta: { ...((cfgT && cfgT.meta) || {}), webhookFonte: d.fonte } };
+          const payload = payloadCrm(cfgFonte, lead, respostasExemplo, true);
+          const r = await enviaCrm(env, url, m, payload);
+          return json({ ...r, enviado: payload });
+        }
+
+        if (p === '/api/admin/webhook-envios' && request.method === 'GET') {
+          const { results } = await env.DB.prepare('SELECT criado_em, teste, destino, status, ok, tentativas, resposta, email FROM webhook_envios ORDER BY id DESC LIMIT 30').all();
+          return json({ items: results });
+        }
 
         if (p === '/api/admin/config' && request.method === 'GET') {
           const [draft, pub] = await Promise.all([getRow(env, 'draft'), getRow(env, 'published')]);
