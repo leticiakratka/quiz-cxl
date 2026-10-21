@@ -905,7 +905,7 @@
     }
   },
   "offer": {
-    "kicker": "A solução:",
+    "kicker": "",
     "title": "Caixa Livre 2.0",
     "image": "img/mockup.webp",
     "intro": "Um sistema pronto pra você copiar e colar, que:",
