@@ -25,6 +25,24 @@ Quiz do Fluxo B (estrutura FaceScan) feito em código próprio, com painel de ad
 - Rastreio igual ao da cxlv4: GTM-N9GCCZSW (snippet no HTML, carrega **logo na abertura** com preconnect do Google/Meta e o `fbevents.js` do Pixel pré-carregado em prioridade baixa, pra o PageView do Meta sair antes: 1,6 s → 1,1 s no 4G normal, 5,5 s → 4,5 s no lento, medido em 20/10/2026; com `noscript`; a UTMify fica depois do `window.load`), pixel da UTMify, UTMs guardadas e `utm_term = fbp~fbc~sid` no link da Eduzz (o Worker da CAPI lê isso na venda). **No localhost e na prévia do painel o GTM e a UTMify não carregam**, pra teste não virar evento no Pixel (no localhost dá pra forçar com `?gtm=1`).
 - Eventos no dataLayer: `quiz_step`, `quiz_lead`, `quiz_result`, `quiz_checkout_click`. O `quiz_lead` sai quando o WhatsApp e o e-mail passam na validação e a pessoa envia, com `event_id` (`lead.<sessão>`), `quiz_email`, `quiz_telefone` (55+DDD+número) e `quiz_nome` pra correspondência avançada. Eles **não disparam nada no Meta sozinhos**: o Lead no Pixel depende do acionador `quiz_lead` no GTM.
 
+## Lead no CRM LCK (passo a passo)
+
+O CRM (crm.leticiakratka.com.br) é um app do Lovable com banco Supabase. Ele já tem entrada de leads (tabela `lead_ingest`, "Ingestão (log)" no Admin, Fontes), mas o endereço dessa entrada fica no projeto do Lovable.
+
+**No Lovable (projeto do CRM)**
+1. Perguntar na IA do Lovable: *"Qual é a URL pública do endpoint que grava leads na tabela lead_ingest? Ele exige algum cabeçalho de autenticação (nome e valor)? Qual o formato de JSON que ele espera pra nome, e-mail, telefone, fonte, respostas e UTMs?"*
+2. Se não existir endpoint público, pedir pra criar: *"Crie uma edge function pública que receba POST em JSON com nome, email, telefone, fonte, origem, respostas (objeto pergunta → resposta), utm_source, utm_medium, utm_campaign, utm_content, utm_term, perfil, renda, sobra, diferenca_mes, pagina e criado_em. Exija o cabeçalho x-webhook-token igual ao segredo QUIZ_WEBHOOK_TOKEN. Grave em lead_ingest do mesmo jeito das outras entradas (fonte_raw = fonte, payload = corpo) e crie ou atualize o lead (mesmo e-mail ou telefone = mesmo lead) no funil [FUNIL], etapa [ETAPA]. Me devolva a URL."*
+3. Em **Fontes**, criar "Quiz Análise" (apelido `quiz_analise_cxl`).
+
+**No painel do quiz (quiz.leticiakratka.com.br/admin → Configurações → CRM)**
+4. Colar o endereço de entrada. Se o CRM pedir, preencher cabeçalho (ex.: `x-webhook-token` ou `Authorization`) e token. Conferir a "Fonte enviada".
+5. Clicar em **Enviar lead de teste** (não precisa publicar). Se o CRM manda WhatsApp automático pra lead novo, usar o próprio número no teste. A resposta do CRM aparece na tela.
+6. Conferir no CRM em **Admin → Ingestão (log)** e no funil se o lead entrou certo. Se deu erro ou o CRM esperava outros nomes de campo, a resposta na tela mostra o motivo (ajuste no `payloadCrm` do `src/worker.js`).
+7. Deu certo: marcar **Enviar cada lead novo pro CRM** e clicar em **Publicar**. Daí pra frente todo lead vai na hora (até 3 tentativas cada).
+8. Acompanhar em **Últimos envios** (✅ aceito / ⚠️ erro, com a resposta do CRM).
+
+Leads que entraram antes de ligar a produção não vão sozinhos (dá pra mandar de uma vez com um script, se precisar).
+
 ## Rodar local
 
 ```bash
