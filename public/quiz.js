@@ -120,7 +120,10 @@
     ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(function (k) {
       if (RAST[k]) p.push(k + '=' + encodeURIComponent(RAST[k]));
     });
-    p.push('utm_term=' + encodeURIComponent(cookie('_fbp') + '~' + fbc() + '~' + S.sid));
+    /* ordem nova (igual à página do Caixa Livre): versao~sid~fbp~fbc. Campos curtos na frente porque
+       a Eduzz corta o utm_term em 255; a CAPI reconhece as duas ordens. versao = teste A/B da capa. */
+    var versao = ''; try { versao = (window.LCK && window.LCK.versao) || ''; } catch (e) { }
+    p.push('utm_term=' + encodeURIComponent(versao + '~' + S.sid + '~' + cookie('_fbp') + '~' + fbc()));
     return base + (base.indexOf('?') === -1 ? '?' : '&') + p.join('&');
   }
   function dl(obj) { if (PREVIEW) return; try { (window.dataLayer = window.dataLayer || []).push(obj); } catch (e) { } }
@@ -216,6 +219,8 @@
     if (fn && fn.bind) fn.bind(sc);
     window.scrollTo(0, 0);
     track(sc.id, S.i);
+    if (S.i > 0 && !render.comecou) { render.comecou = true; lck('quizStart'); }
+    if (S.i > 0) lck('quizStep', sc.id);
     idle(prefetchNext);
   }
 
@@ -245,14 +250,36 @@
       '<span>' + tpl(o.label) + '</span>' + (multi ? '<span class="chk">✓</span>' : '') + '</button>';
   }
 
+  /* teste A/B da capa (sistema de gestão): o Worker põe título e subtítulo originais escondidos no HTML
+     (.lck-ab) e o rastreador troca o texto deles quando sorteia B/C. Texto igual ao original = versão A,
+     com negrito; diferente = alternativa, em texto simples. */
+  function abTexto(sel, orig) {
+    var el = document.querySelector('.lck-ab ' + sel);
+    if (!el || PREVIEW) return tpl(orig);
+    var txt = el.textContent.trim(), base = String(orig || '').replace(/\*\*/g, '').replace(/\{\{\s*\w+\s*\}\}/g, '').trim();
+    return txt === base ? tpl(orig) : esc(txt);
+  }
+  function lck(fn, arg) { try { if (window.LCK && window.LCK[fn]) window.LCK[fn](arg); } catch (e) { } }
+  (function () {
+    var box = document.querySelector('.lck-ab');
+    if (!box || !window.MutationObserver) return;
+    new MutationObserver(function () {
+      var sc = C && C.screens && C.screens[S.i];
+      if (!sc || sc.type !== 'cover') return;
+      var h = app.querySelector('.cover-title'), s = app.querySelector('.cover-sub');
+      if (h) h.innerHTML = abTexto('[data-lck-headline]', sc.title);
+      if (s) s.innerHTML = abTexto('[data-lck-subheadline]', sc.subtitle);
+    }).observe(box, { childList: true, characterData: true, subtree: true });
+  })();
+
   /* ------------------------------------------------------------- renderizadores */
   var R = {
     cover: {
       html: function (sc) {
         return '<div class="cover">' +
           (sc.image ? '<img class="cover-img" src="' + esc(sc.image) + '" alt="" width="460" height="460" fetchpriority="high">' : '') +
-          '<h1 class="cover-title">' + tpl(sc.title) + '</h1>' +
-          (sc.subtitle ? '<p class="cover-sub serif">' + tpl(sc.subtitle) + '</p>' : '') +
+          '<h1 class="cover-title">' + abTexto('[data-lck-headline]', sc.title) + '</h1>' +
+          (sc.subtitle ? '<p class="cover-sub serif">' + abTexto('[data-lck-subheadline]', sc.subtitle) + '</p>' : '') +
           '<button class="btn" data-act="next">' + tpl(sc.button) + '</button>' +
           (sc.linkText ? '<button class="link" data-act="saved">' + tpl(sc.linkText) + '</button>' : '') +
           (sc.small ? '<p class="small">' + tpl(sc.small) + '</p>' : '') + '</div>';
@@ -471,6 +498,7 @@
     /* evento do Lead: dispara quando o WhatsApp e o e-mail passam na validação e a pessoa envia.
        event_id fixo por sessão (dedup com a CAPI no futuro); e-mail/telefone/nome pra
        correspondência avançada da tag do Meta no GTM */
+    lck('quizLead');
     dl({
       event: 'quiz_lead', quiz_id: QUIZ_ID, quiz_perfil: pf, event_id: 'lead.' + S.sid,
       quiz_email: mail, quiz_telefone: whatsDigits.charAt(0) === '+' ? whatsDigits.slice(1) : '55' + whatsDigits, quiz_nome: S.nome
@@ -749,6 +777,7 @@
       try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ans: S.ans, nome: S.nome, ts: Date.now() })); } catch (e) { }
       dl({ event: 'quiz_result', quiz_id: QUIZ_ID, quiz_perfil: pf });
       beacon('resultado', true);
+      lck('quizComplete');
       notificacao();
     } else beacon('oferta_direta', true);
   }

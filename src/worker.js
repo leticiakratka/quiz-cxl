@@ -126,6 +126,29 @@ function rastreioHtml(m) {
   return { head, body };
 }
 
+/* Sistema de testes A/B da gestão (gestao.leticiakratka.com.br, página "Quiz Caixa Livre").
+   O sistema lê o título original no HTML servido e troca o texto do primeiro [data-lck-headline] /
+   [data-lck-subheadline] quando sorteia B/C. Como a capa é montada pelo quiz.js, o título e o subtítulo
+   originais vão escondidos no HTML (.lck-ab) e a capa usa o texto que estiver neles (ver abTexto no
+   quiz.js). Anti-piscada e script ficam fora do localhost, da prévia do painel e de robô declarado,
+   igual ao GTM. */
+const TESTES_PAGINA = 'f44a80eb-4550-4eee-ae66-c8e5a496126b';
+const semMarca = (s) => String(s || '').replace(/\*\*/g, '').replace(/\{\{\s*\w+\s*\}\}/g, '').trim();
+function testesHead(m) {
+  const pag = /^[a-f0-9-]{36}$/.test(m.testesPagina || '') ? m.testesPagina : TESTES_PAGINA;
+  return `\n  <style>.lck-wait .cover-title,.lck-wait .cover-sub{visibility:hidden}</style>` +
+    `\n  <script>(function(){var l=location,d=document;if(/[?&]preview=1/.test(l.search))return;` +
+    `if(/^(localhost|127\\.0\\.0\\.1|\\[::1\\])$/.test(l.hostname)&&!/[?&]gtm=1/.test(l.search))return;` +
+    `if(navigator.webdriver||/bot|crawler|spider|crawling|headless|lighthouse|facebookexternalhit|facebot|meta-externalagent|meta-externalfetcher|preview|prerender/i.test(navigator.userAgent||''))return;` +
+    `d.documentElement.classList.add('lck-wait');setTimeout(function(){d.documentElement.classList.remove('lck-wait')},1500);` +
+    `var s=d.createElement('script');s.src='https://gestao.leticiakratka.com.br/tracker.js';s.setAttribute('data-page','${pag}');s.defer=true;d.head.appendChild(s);})();</script>`;
+}
+function testesBody(capa) {
+  if (capa.type !== 'cover') return '';
+  return `<div class="lck-ab" hidden><h1 data-lck-headline>${escAttr(semMarca(capa.title))}</h1>` +
+    (capa.subtitle ? `<p data-lck-subheadline>${escAttr(semMarca(capa.subtitle))}</p>` : '') + '</div>\n  ';
+}
+
 async function paginaQuiz(request, env, ctx) {
   const [cfg, tpl] = await Promise.all([
     configPublicado(env, request, ctx),
@@ -141,8 +164,8 @@ async function paginaQuiz(request, env, ctx) {
   const cfgJs = JSON.stringify(configPublico(cfg)).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   const head =
     (capa.type === 'cover' && capa.image ? `<link rel="preload" as="image" href="${escAttr(capa.image)}" fetchpriority="high">\n  ` : '') +
-    `<script>window.__CFG=${cfgJs};</script>\n  ` + trk.head;
-  const html = tpl.replace('<!--QUIZ_HEAD-->', () => head).replace('<!--QUIZ_BODY-->', () => trk.body);
+    `<script>window.__CFG=${cfgJs};</script>\n  ` + trk.head + testesHead(cfg.meta || {});
+  const html = tpl.replace('<!--QUIZ_HEAD-->', () => head).replace('<!--QUIZ_BODY-->', () => trk.body + testesBody(capa));
   return new Response(request.method === 'HEAD' ? null : html, {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff' }
   });
